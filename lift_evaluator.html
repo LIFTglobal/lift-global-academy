@@ -133,6 +133,10 @@
         <div class="detail-value" id="d-comments"></div>
       </div>
       <div class="detail-row">
+        <div class="detail-label">Attached documents</div>
+        <div id="d-documents"></div>
+      </div>
+      <div class="detail-row">
         <div class="detail-label">Evaluator note (required if requesting revisions)</div>
         <textarea id="evaluator-note" placeholder="Explain what's missing or needs correction..."></textarea>
       </div>
@@ -244,7 +248,7 @@
     });
   }
 
-  function openPackage(id, data) {
+  async function openPackage(id, data) {
     const pkg = data.find(p => p.id === id);
     if (!pkg) return;
     currentPackage = pkg;
@@ -260,6 +264,28 @@
     document.getElementById("d-comments").textContent = pkg.teacher_comments || "(none)";
     document.getElementById("evaluator-note").value = "";
     document.getElementById("detail-msg").style.display = "none";
+
+    const docsEl = document.getElementById("d-documents");
+    docsEl.innerHTML = "Loading...";
+
+    const { data: docs, error: docsError } = await client
+      .from("documents")
+      .select("id, document_type, file_path, file_name")
+      .eq("review_package_id", id);
+
+    if (docsError || !docs || docs.length === 0) {
+      docsEl.innerHTML = '<div class="detail-value">(no documents attached)</div>';
+    } else {
+      const links = await Promise.all(docs.map(async (doc) => {
+        const { data: signed } = await client.storage
+          .from("documents")
+          .createSignedUrl(doc.file_path, 3600); // link valid for 1 hour
+        const url = signed ? signed.signedUrl : "#";
+        return '<div class="detail-value"><a href="' + url + '" target="_blank">' +
+               doc.file_name + "</a> (" + doc.document_type.replace(/_/g, " ") + ")</div>";
+      }));
+      docsEl.innerHTML = links.join("");
+    }
 
     document.getElementById("queue-card").style.display = "none";
     document.getElementById("detail-card").style.display = "block";

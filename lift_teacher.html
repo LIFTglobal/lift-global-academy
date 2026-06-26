@@ -124,6 +124,19 @@
       <label for="comments">Comments for LIFT (optional)</label>
       <textarea id="comments" placeholder="Anything LIFT's evaluator should know about this submission"></textarea>
 
+      <label for="doc-type">Document type</label>
+      <select id="doc-type">
+        <option value="report_card">Report card</option>
+        <option value="assessment">Assessment</option>
+        <option value="writing_sample">Writing sample</option>
+        <option value="portfolio_item">Portfolio item</option>
+        <option value="standardized_test_result">Standardized test result</option>
+        <option value="other">Other</option>
+      </select>
+
+      <label for="doc-file">Attach a file (optional)</label>
+      <input type="file" id="doc-file">
+
       <button type="submit" id="draft-btn" data-action="draft">Save as draft</button>
       <button type="submit" class="secondary" id="submit-btn" data-action="submit">Submit for review</button>
     </form>
@@ -234,14 +247,30 @@
       return;
     }
 
+    const packageIds = (data || []).map(p => p.id);
+    let docCounts = {};
+    if (packageIds.length > 0) {
+      const { data: docs } = await client
+        .from("documents")
+        .select("review_package_id")
+        .in("review_package_id", packageIds);
+      (docs || []).forEach(d => {
+        docCounts[d.review_package_id] = (docCounts[d.review_package_id] || 0) + 1;
+      });
+    }
+
     listEl.innerHTML = data.length
       ? data.map(p => {
           const student = cachedStudents.find(s => s.id === p.student_id);
           const studentName = student ? student.first_name + " " + student.last_name : "Unknown student";
+          const docCount = docCounts[p.id] || 0;
+          const docNote = docCount > 0
+            ? " &middot; " + docCount + " file" + (docCount > 1 ? "s" : "") + " attached"
+            : " &middot; no files attached";
           return '<div class="list-item">' +
             '<div class="row1"><span>' + studentName + " — " + (p.subject || "") + '</span>' +
             '<span class="status-pill status-' + p.status + '">' + statusLabel(p.status) + "</span></div>" +
-            '<div class="meta">Grade: ' + (p.grade_value || "—") + "</div>" +
+            '<div class="meta">Grade: ' + (p.grade_value || "—") + docNote + "</div>" +
             "</div>";
         }).join("")
       : '<div class="empty-note">No submissions yet.</div>';
@@ -280,15 +309,58 @@
       payload.submitted_at = new Date().toISOString();
     }
 
-    const { error } = await client.from("review_packages").insert(payload);
-
-    draftBtn.disabled = false;
-    submitBtn.disabled = false;
+    const { data: insertedPackage, error } = await client
+      .from("review_packages")
+      .insert(payload)
+      .select()
+      .single();
 
     if (error) {
+      draftBtn.disabled = false;
+      submitBtn.disabled = false;
       showMsg(msgEl, error.message, "error");
       return;
     }
+
+    // If a file was selected, upload it and link it to the package we just created
+    const fileInput = document.getElementById("doc-file");
+    const file = fileInput.files[0];
+
+    if (file) {
+      const docType = document.getElementById("doc-type").value;
+      const filePath = myAccount.partner_school_id + "/" + insertedPackage.id + "/" + Date.now() + "_" + file.name;
+
+      const { error: uploadError } = await client.storage
+        .from("documents")
+        .upload(filePath, file);
+
+      if (uploadError) {
+        draftBtn.disabled = false;
+        submitBtn.disabled = false;
+        showMsg(msgEl, "Grade saved, but the file upload failed: " + uploadError.message, "error");
+        await loadSubmissions();
+        return;
+      }
+
+      const { error: docRowError } = await client.from("documents").insert({
+        review_package_id: insertedPackage.id,
+        document_type: docType,
+        file_path: filePath,
+        file_name: file.name,
+        uploaded_by_account_id: myAccount.id,
+      });
+
+      if (docRowError) {
+        draftBtn.disabled = false;
+        submitBtn.disabled = false;
+        showMsg(msgEl, "Grade saved, but linking the file failed: " + docRowError.message, "error");
+        await loadSubmissions();
+        return;
+      }
+    }
+
+    draftBtn.disabled = false;
+    submitBtn.disabled = false;
 
     showMsg(msgEl, isSubmit ? "Submitted for LIFT review." : "Saved as draft.", "success");
     document.getElementById("grade-form").reset();
