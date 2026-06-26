@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LIFT Global Academy — Admin</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+    background: #f4f4f2;
+    min-height: 100vh;
+    padding: 20px;
+  }
+  .wrap { max-width: 640px; margin: 0 auto; }
+  .card {
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    padding: 32px;
+    margin-bottom: 24px;
+  }
+  h1 { font-size: 22px; font-weight: 600; color: #1a2e44; margin-bottom: 4px; }
+  .top-subtitle { font-size: 13px; color: #6b7280; margin-bottom: 28px; }
+  h2 { font-size: 16px; font-weight: 600; color: #1a2e44; margin-bottom: 14px; }
+  label {
+    display: block;
+    font-size: 13px;
+    color: #374151;
+    margin-bottom: 6px;
+    font-weight: 500;
+    margin-top: 14px;
+  }
+  label:first-of-type { margin-top: 0; }
+  input, select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 14px;
+    background: white;
+  }
+  input:focus, select:focus { outline: none; border-color: #1a2e44; }
+  button {
+    margin-top: 18px;
+    padding: 10px 18px;
+    background: #1a2e44;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  button:disabled { background: #9ca3af; cursor: not-allowed; }
+  .msg {
+    margin-top: 14px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    display: none;
+  }
+  .msg.error { background: #fef2f2; color: #991b1b; }
+  .msg.success { background: #ecfdf5; color: #065f46; }
+  .list-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid #f0f0f0;
+    font-size: 14px;
+  }
+  .list-item:last-child { border-bottom: none; }
+  .list-item .meta { color: #6b7280; font-size: 12px; }
+  .empty-note { color: #9ca3af; font-size: 13px; padding: 8px 0; }
+  .gate { text-align: center; padding: 60px 20px; color: #6b7280; }
+</style>
+</head>
+<body>
+
+<div class="wrap" id="gate-wrap">
+  <div class="card gate" id="gate">Checking your session...</div>
+</div>
+
+<div class="wrap" id="app-wrap" style="display:none;">
+
+  <div class="card">
+    <h1>LIFT Global Academy</h1>
+    <div class="top-subtitle">School administrator dashboard — signed in as <span id="who-am-i"></span></div>
+  </div>
+
+  <div class="card">
+    <h2>Add a partner school</h2>
+    <form id="school-form">
+      <label for="school-name">School name</label>
+      <input type="text" id="school-name" placeholder="e.g. Cedar Hill Learning Center" required>
+      <label for="school-type">Partner type</label>
+      <select id="school-type">
+        <option value="learning_center_microschool">Learning center / microschool</option>
+        <option value="international_school">Unaccredited international school</option>
+      </select>
+      <button type="submit">Add school</button>
+    </form>
+    <div class="msg" id="school-msg"></div>
+    <div id="school-list" style="margin-top:18px;"></div>
+  </div>
+
+  <div class="card">
+    <h2>Add a teacher</h2>
+    <form id="teacher-form">
+      <label for="teacher-school">Partner school</label>
+      <select id="teacher-school" required></select>
+      <label for="teacher-name">Teacher name</label>
+      <input type="text" id="teacher-name" placeholder="e.g. J. Alavi" required>
+      <label for="teacher-email">Teacher email</label>
+      <input type="email" id="teacher-email" placeholder="teacher@example.com" required>
+      <label for="teacher-password">Temporary password</label>
+      <input type="text" id="teacher-password" placeholder="Give them something to start with" required>
+      <button type="submit">Add teacher</button>
+    </form>
+    <div class="msg" id="teacher-msg"></div>
+    <div id="teacher-list" style="margin-top:18px;"></div>
+  </div>
+
+  <div class="card">
+    <h2>Add a student</h2>
+    <form id="student-form">
+      <label for="student-school">Partner school</label>
+      <select id="student-school" required></select>
+      <label for="student-first">First name</label>
+      <input type="text" id="student-first" required>
+      <label for="student-last">Last name</label>
+      <input type="text" id="student-last" required>
+      <label for="student-grade">Grade level</label>
+      <input type="number" id="student-grade" min="0" max="12" required>
+      <button type="submit">Add student</button>
+    </form>
+    <div class="msg" id="student-msg"></div>
+    <div id="student-list" style="margin-top:18px;"></div>
+  </div>
+
+</div>
+
+<script>
+  const SUPABASE_URL = "https://ojmqlvtyygvethwrdqon.supabase.co";
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9qbXFsdnR5eWd2ZXRod3JkcW9uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0MzEyMTQsImV4cCI6MjA5ODAwNzIxNH0.IWLrhtb4w_dq-_pjW1wzRAX6-0qI4Hmwtp5p_cSSVWM";
+  const CREATE_TEACHER_FUNCTION_URL = "https://ojmqlvtyygvethwrdqon.supabase.co/functions/v1/create_teacher";
+
+  const { createClient } = supabase;
+  const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  function showMsg(el, text, type) {
+    el.textContent = text;
+    el.className = "msg " + type;
+    el.style.display = "block";
+  }
+
+  function clearMsg(el) {
+    el.style.display = "none";
+  }
+
+  let cachedSchools = [];
+
+  // ---------- Gate: only allow school_admin accounts in ----------
+  async function checkAccess() {
+    const { data: sessionData } = await client.auth.getSession();
+    if (!sessionData.session) {
+      document.getElementById("gate").innerHTML =
+        "You're not signed in. Sign in through the LIFT login page first, then come back to this page.";
+      return;
+    }
+
+    const userId = sessionData.session.user.id;
+    const { data: account, error } = await client
+      .from("accounts")
+      .select("name, role")
+      .eq("id", userId)
+      .single();
+
+    if (error || !account) {
+      document.getElementById("gate").innerHTML =
+        "Signed in, but no matching accounts row was found for this user.";
+      return;
+    }
+
+    if (account.role !== "school_admin" && account.role !== "lift_evaluator") {
+      document.getElementById("gate").innerHTML =
+        "Signed in as " + account.name + ", but this account's role (" + account.role +
+        ") doesn't have access to the admin dashboard.";
+      return;
+    }
+
+    document.getElementById("who-am-i").textContent = account.name + " (" + account.role + ")";
+    document.getElementById("gate-wrap").style.display = "none";
+    document.getElementById("app-wrap").style.display = "block";
+
+    await loadSchools();
+    await loadTeachers();
+    await loadStudents();
+  }
+
+  // ---------- Schools ----------
+  async function loadSchools() {
+    const { data, error } = await client
+      .from("partner_schools")
+      .select("id, name, partner_type")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      document.getElementById("school-list").innerHTML =
+        '<div class="empty-note">Could not load schools: ' + error.message + "</div>";
+      return;
+    }
+
+    cachedSchools = data || [];
+
+    const listEl = document.getElementById("school-list");
+    listEl.innerHTML = cachedSchools.length
+      ? cachedSchools.map(s =>
+          '<div class="list-item"><span>' + s.name + '</span><span class="meta">' + s.partner_type + "</span></div>"
+        ).join("")
+      : '<div class="empty-note">No schools added yet.</div>';
+
+    const schoolOptions = cachedSchools.map(s =>
+      '<option value="' + s.id + '">' + s.name + "</option>"
+    ).join("");
+
+    const teacherSelect = document.getElementById("teacher-school");
+    const studentSelect = document.getElementById("student-school");
+    teacherSelect.innerHTML = schoolOptions || '<option value="">Add a school first</option>';
+    studentSelect.innerHTML = schoolOptions || '<option value="">Add a school first</option>';
+  }
+
+  document.getElementById("school-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const msgEl = document.getElementById("school-msg");
+    clearMsg(msgEl);
+
+    const name = document.getElementById("school-name").value.trim();
+    const partner_type = document.getElementById("school-type").value;
+
+    const { error } = await client.from("partner_schools").insert({ name, partner_type });
+
+    if (error) {
+      showMsg(msgEl, error.message, "error");
+      return;
+    }
+
+    showMsg(msgEl, "School added.", "success");
+    document.getElementById("school-form").reset();
+    await loadSchools();
+  });
+
+  // ---------- Teachers ----------
+  async function loadTeachers() {
+    const { data, error } = await client
+      .from("accounts")
+      .select("name, email, partner_school_id")
+      .eq("role", "teacher")
+      .order("created_at", { ascending: false });
+
+    const listEl = document.getElementById("teacher-list");
+    if (error) {
+      listEl.innerHTML = '<div class="empty-note">Could not load teachers: ' + error.message + "</div>";
+      return;
+    }
+
+    listEl.innerHTML = data.length
+      ? data.map(t => {
+          const school = cachedSchools.find(s => s.id === t.partner_school_id);
+          return '<div class="list-item"><span>' + t.name + '</span><span class="meta">' +
+                 (school ? school.name : "") + "</span></div>";
+        }).join("")
+      : '<div class="empty-note">No teachers added yet.</div>';
+  }
+
+  document.getElementById("teacher-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const msgEl = document.getElementById("teacher-msg");
+    clearMsg(msgEl);
+    const submitBtn = e.target.querySelector("button");
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Adding...";
+
+    const partner_school_id = document.getElementById("teacher-school").value;
+    const name = document.getElementById("teacher-name").value.trim();
+    const email = document.getElementById("teacher-email").value.trim();
+    const password = document.getElementById("teacher-password").value;
+
+    try {
+      const { data: sessionData } = await client.auth.getSession();
+      const accessToken = sessionData.session.access_token;
+
+      const resp = await fetch(CREATE_TEACHER_FUNCTION_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer " + accessToken,
+        },
+        body: JSON.stringify({ name, email, password, partner_school_id }),
+      });
+
+      const result = await resp.json();
+
+      if (!resp.ok) {
+        showMsg(msgEl, result.error || "Something went wrong creating this teacher.", "error");
+        return;
+      }
+
+      showMsg(msgEl, "Teacher account created. They can log in with the email and password you set.", "success");
+      document.getElementById("teacher-form").reset();
+      await loadTeachers();
+    } catch (err) {
+      showMsg(msgEl, "Network error: " + err.message, "error");
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Add teacher";
+    }
+  });
+
+  // ---------- Students ----------
+  async function loadStudents() {
+    const { data, error } = await client
+      .from("students")
+      .select("first_name, last_name, grade_level, partner_school_id")
+      .order("created_at", { ascending: false });
+
+    const listEl = document.getElementById("student-list");
+    if (error) {
+      listEl.innerHTML = '<div class="empty-note">Could not load students: ' + error.message + "</div>";
+      return;
+    }
+
+    listEl.innerHTML = data.length
+      ? data.map(s => {
+          const school = cachedSchools.find(sc => sc.id === s.partner_school_id);
+          return '<div class="list-item"><span>' + s.first_name + " " + s.last_name +
+                 " (Grade " + s.grade_level + ')</span><span class="meta">' +
+                 (school ? school.name : "") + "</span></div>";
+        }).join("")
+      : '<div class="empty-note">No students added yet.</div>';
+  }
+
+  document.getElementById("student-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const msgEl = document.getElementById("student-msg");
+    clearMsg(msgEl);
+
+    const partner_school_id = document.getElementById("student-school").value;
+    const first_name = document.getElementById("student-first").value.trim();
+    const last_name = document.getElementById("student-last").value.trim();
+    const grade_level = parseInt(document.getElementById("student-grade").value, 10);
+
+    const { error } = await client.from("students").insert({
+      partner_school_id, first_name, last_name, grade_level,
+    });
+
+    if (error) {
+      showMsg(msgEl, error.message, "error");
+      return;
+    }
+
+    showMsg(msgEl, "Student added.", "success");
+    document.getElementById("student-form").reset();
+    await loadStudents();
+  });
+
+  checkAccess();
+</script>
+
+</body>
+</html>
