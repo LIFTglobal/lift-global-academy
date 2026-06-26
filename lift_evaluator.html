@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LIFT Global Academy — Evaluator</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+    background: #f4f4f2;
+    min-height: 100vh;
+    padding: 20px;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; }
+  .card {
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    padding: 32px;
+    margin-bottom: 24px;
+  }
+  h1 { font-size: 22px; font-weight: 600; color: #1a2e44; margin-bottom: 4px; }
+  .top-subtitle { font-size: 13px; color: #6b7280; }
+  h2 { font-size: 16px; font-weight: 600; color: #1a2e44; margin-bottom: 14px; }
+  .queue-item {
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 12px;
+    cursor: pointer;
+  }
+  .queue-item:hover { border-color: #1a2e44; }
+  .queue-item .row1 { display: flex; justify-content: space-between; align-items: baseline; }
+  .queue-item .student-name { font-weight: 600; font-size: 15px; color: #1a2e44; }
+  .queue-item .meta { color: #6b7280; font-size: 12px; margin-top: 4px; }
+  .status-pill {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  .status-pending_review { background: #fef3c7; color: #92400e; }
+  .status-approved { background: #d1fae5; color: #065f46; }
+  .status-revisions_requested { background: #fee2e2; color: #991b1b; }
+  .empty-note { color: #9ca3af; font-size: 13px; padding: 8px 0; }
+  .gate { text-align: center; padding: 60px 20px; color: #6b7280; }
+
+  /* Detail panel */
+  .detail-row { margin-bottom: 16px; }
+  .detail-label { font-size: 12px; color: #6b7280; font-weight: 500; margin-bottom: 4px; }
+  .detail-value { font-size: 14px; color: #111827; white-space: pre-wrap; }
+  .grade-display { font-size: 28px; font-weight: 600; color: #1a2e44; }
+  textarea#evaluator-note {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 14px;
+    min-height: 80px;
+    font-family: inherit;
+    margin-top: 8px;
+  }
+  .actions { margin-top: 18px; display: flex; gap: 10px; flex-wrap: wrap; }
+  button {
+    padding: 10px 18px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  button.approve { background: #1e7b34; color: white; }
+  button.revise { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+  button.back { background: white; color: #1a2e44; border: 1px solid #d1d5db; }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  .msg {
+    margin-top: 14px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    display: none;
+  }
+  .msg.error { background: #fef2f2; color: #991b1b; }
+  .msg.success { background: #ecfdf5; color: #065f46; }
+</style>
+</head>
+<body>
+
+<div class="wrap" id="gate-wrap">
+  <div class="card gate" id="gate">Checking your session...</div>
+</div>
+
+<div class="wrap" id="app-wrap" style="display:none;">
+
+  <div class="card">
+    <h1>LIFT Global Academy</h1>
+    <div class="top-subtitle">Evaluator review queue — signed in as <span id="who-am-i"></span></div>
+  </div>
+
+  <div class="card" id="queue-card">
+    <h2>Pending review</h2>
+    <div id="queue-list"></div>
+  </div>
+
+  <div class="card" id="detail-card" style="display:none;">
+    <button class="back" id="back-btn">&larr; Back to queue</button>
+    <div style="margin-top:20px;">
+      <div class="detail-row">
+        <div class="detail-label">Student</div>
+        <div class="detail-value" id="d-student"></div>
+      </div>
+      <div class="detail-row">
+        <div class="detail-label">Subject</div>
+        <div class="detail-value" id="d-subject"></div>
+      </div>
+      <div class="detail-row">
+        <div class="detail-label">Submitted by</div>
+        <div class="detail-value" id="d-teacher"></div>
+      </div>
+      <div class="detail-row">
+        <div class="detail-label">Grade submitted</div>
+        <div class="grade-display" id="d-grade"></div>
+      </div>
+      <div class="detail-row">
+        <div class="detail-label">Written evaluation</div>
+        <div class="detail-value" id="d-evaluation"></div>
+      </div>
+      <div class="detail-row">
+        <div class="detail-label">Teacher comments to LIFT</div>
+        <div class="detail-value" id="d-comments"></div>
+      </div>
+      <div class="detail-row">
+        <div class="detail-label">Evaluator note (required if requesting revisions)</div>
+        <textarea id="evaluator-note" placeholder="Explain what's missing or needs correction..."></textarea>
+      </div>
+      <div class="actions">
+        <button class="approve" id="approve-btn">&#9989; Approve</button>
+        <button class="revise" id="revise-btn">&#10060; Request revisions</button>
+      </div>
+      <div class="msg" id="detail-msg"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const SUPABASE_URL = "https://ojmqlvtyygvethwrdqon.supabase.co";
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9qbXFsdnR5eWd2ZXRod3JkcW9uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0MzEyMTQsImV4cCI6MjA5ODAwNzIxNH0.IWLrhtb4w_dq-_pjW1wzRAX6-0qI4Hmwtp5p_cSSVWM";
+
+  const { createClient } = supabase;
+  const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  let myAccount = null;
+  let currentPackage = null;
+
+  function showMsg(el, text, type) {
+    el.textContent = text;
+    el.className = "msg " + type;
+    el.style.display = "block";
+  }
+
+  function statusLabel(status) {
+    return {
+      pending_review: "Pending review",
+      approved: "Approved",
+      revisions_requested: "Revisions requested",
+    }[status] || status;
+  }
+
+  async function checkAccess() {
+    const { data: sessionData } = await client.auth.getSession();
+    if (!sessionData.session) {
+      document.getElementById("gate").innerHTML =
+        "You're not signed in. Sign in through the LIFT login page first, then come back to this page.";
+      return;
+    }
+
+    const userId = sessionData.session.user.id;
+    const { data: account, error } = await client
+      .from("accounts")
+      .select("id, name, role")
+      .eq("id", userId)
+      .single();
+
+    if (error || !account) {
+      document.getElementById("gate").innerHTML =
+        "Signed in, but no matching accounts row was found for this user.";
+      return;
+    }
+
+    if (account.role !== "lift_evaluator") {
+      document.getElementById("gate").innerHTML =
+        "Signed in as " + account.name + ", but this account's role (" + account.role +
+        ") doesn't have access to the evaluator queue.";
+      return;
+    }
+
+    myAccount = account;
+    document.getElementById("who-am-i").textContent = account.name;
+    document.getElementById("gate-wrap").style.display = "none";
+    document.getElementById("app-wrap").style.display = "block";
+
+    await loadQueue();
+  }
+
+  async function loadQueue() {
+    const { data, error } = await client
+      .from("review_packages")
+      .select(`
+        id, subject, grade_value, status, created_at, submitted_at,
+        student_id, submitted_by_account_id,
+        students:student_id ( first_name, last_name, grade_level, partner_school_id ),
+        accounts:submitted_by_account_id ( name )
+      `)
+      .in("status", ["pending_review", "approved", "revisions_requested"])
+      .order("submitted_at", { ascending: false });
+
+    const listEl = document.getElementById("queue-list");
+    if (error) {
+      listEl.innerHTML = '<div class="empty-note">Could not load the queue: ' + error.message + "</div>";
+      return;
+    }
+
+    if (!data || data.length === 0) {
+      listEl.innerHTML = '<div class="empty-note">No submissions yet.</div>';
+      return;
+    }
+
+    listEl.innerHTML = data.map(p => {
+      const studentName = p.students ? p.students.first_name + " " + p.students.last_name : "Unknown student";
+      const teacherName = p.accounts ? p.accounts.name : "Unknown teacher";
+      return '<div class="queue-item" data-id="' + p.id + '">' +
+        '<div class="row1"><span class="student-name">' + studentName + "</span>" +
+        '<span class="status-pill status-' + p.status + '">' + statusLabel(p.status) + "</span></div>" +
+        '<div class="meta">' + (p.subject || "—") + " &middot; submitted by " + teacherName + "</div>" +
+        "</div>";
+    }).join("");
+
+    document.querySelectorAll(".queue-item").forEach(el => {
+      el.addEventListener("click", () => openPackage(el.dataset.id, data));
+    });
+  }
+
+  function openPackage(id, data) {
+    const pkg = data.find(p => p.id === id);
+    if (!pkg) return;
+    currentPackage = pkg;
+
+    const studentName = pkg.students ? pkg.students.first_name + " " + pkg.students.last_name + " (Grade " + pkg.students.grade_level + ")" : "Unknown student";
+    const teacherName = pkg.accounts ? pkg.accounts.name : "Unknown teacher";
+
+    document.getElementById("d-student").textContent = studentName;
+    document.getElementById("d-subject").textContent = pkg.subject || "—";
+    document.getElementById("d-teacher").textContent = teacherName;
+    document.getElementById("d-grade").textContent = pkg.grade_value || "—";
+    document.getElementById("d-evaluation").textContent = pkg.written_evaluation || "(none provided)";
+    document.getElementById("d-comments").textContent = pkg.teacher_comments || "(none)";
+    document.getElementById("evaluator-note").value = "";
+    document.getElementById("detail-msg").style.display = "none";
+
+    document.getElementById("queue-card").style.display = "none";
+    document.getElementById("detail-card").style.display = "block";
+  }
+
+  document.getElementById("back-btn").addEventListener("click", () => {
+    document.getElementById("detail-card").style.display = "none";
+    document.getElementById("queue-card").style.display = "block";
+    loadQueue();
+  });
+
+  async function decide(decision) {
+    const msgEl = document.getElementById("detail-msg");
+    const note = document.getElementById("evaluator-note").value.trim();
+
+    if (decision === "revisions_requested" && !note) {
+      showMsg(msgEl, "A note is required when requesting revisions.", "error");
+      return;
+    }
+
+    document.getElementById("approve-btn").disabled = true;
+    document.getElementById("revise-btn").disabled = true;
+
+    // Record the decision
+    const { error: decisionError } = await client.from("evaluation_decisions").insert({
+      review_package_id: currentPackage.id,
+      evaluator_account_id: myAccount.id,
+      decision,
+      note: note || null,
+    });
+
+    if (decisionError) {
+      showMsg(msgEl, decisionError.message, "error");
+      document.getElementById("approve-btn").disabled = false;
+      document.getElementById("revise-btn").disabled = false;
+      return;
+    }
+
+    // Update the package's status to match
+    const { error: updateError } = await client
+      .from("review_packages")
+      .update({ status: decision })
+      .eq("id", currentPackage.id);
+
+    document.getElementById("approve-btn").disabled = false;
+    document.getElementById("revise-btn").disabled = false;
+
+    if (updateError) {
+      showMsg(msgEl, updateError.message, "error");
+      return;
+    }
+
+    showMsg(msgEl, decision === "approved" ? "Approved." : "Revisions requested.", "success");
+
+    setTimeout(() => {
+      document.getElementById("detail-card").style.display = "none";
+      document.getElementById("queue-card").style.display = "block";
+      loadQueue();
+    }, 900);
+  }
+
+  document.getElementById("approve-btn").addEventListener("click", () => decide("approved"));
+  document.getElementById("revise-btn").addEventListener("click", () => decide("revisions_requested"));
+
+  checkAccess();
+</script>
+
+</body>
+</html>
