@@ -137,6 +137,11 @@
         <div id="d-documents"></div>
       </div>
       <div class="detail-row">
+        <div class="detail-label">Award credit (required to approve)</div>
+        <select id="award-category" style="margin-bottom:8px;"></select>
+        <input type="number" id="award-value" step="0.5" placeholder="Credit value, e.g. 10">
+      </div>
+      <div class="detail-row">
         <div class="detail-label">Evaluator note (required if requesting revisions)</div>
         <textarea id="evaluator-note" placeholder="Explain what's missing or needs correction..."></textarea>
       </div>
@@ -174,6 +179,22 @@
     }[status] || status;
   }
 
+  let cachedRequirements = [];
+
+  async function loadRequirementCategories() {
+    const { data, error } = await client
+      .from("graduation_requirements")
+      .select("subject_category, credits_required")
+      .order("sort_order");
+
+    if (!error && data) {
+      cachedRequirements = data;
+      const select = document.getElementById("award-category");
+      select.innerHTML = '<option value="">Choose a category...</option>' +
+        data.map(r => '<option value="' + r.subject_category + '">' + r.subject_category + "</option>").join("");
+    }
+  }
+
   async function checkAccess() {
     const { data: sessionData } = await client.auth.getSession();
     if (!sessionData.session) {
@@ -207,6 +228,7 @@
     document.getElementById("gate-wrap").style.display = "none";
     document.getElementById("app-wrap").style.display = "block";
 
+    await loadRequirementCategories();
     await loadQueue();
   }
 
@@ -263,6 +285,8 @@
     document.getElementById("d-evaluation").textContent = pkg.written_evaluation || "(none provided)";
     document.getElementById("d-comments").textContent = pkg.teacher_comments || "(none)";
     document.getElementById("evaluator-note").value = "";
+    document.getElementById("award-category").value = "";
+    document.getElementById("award-value").value = pkg.recommended_credit_value || "";
     document.getElementById("detail-msg").style.display = "none";
 
     const docsEl = document.getElementById("d-documents");
@@ -300,9 +324,16 @@
   async function decide(decision) {
     const msgEl = document.getElementById("detail-msg");
     const note = document.getElementById("evaluator-note").value.trim();
+    const awardCategory = document.getElementById("award-category").value;
+    const awardValue = document.getElementById("award-value").value;
 
     if (decision === "revisions_requested" && !note) {
       showMsg(msgEl, "A note is required when requesting revisions.", "error");
+      return;
+    }
+
+    if (decision === "approved" && (!awardCategory || !awardValue)) {
+      showMsg(msgEl, "Choose a credit category and enter a credit value before approving.", "error");
       return;
     }
 
@@ -324,10 +355,16 @@
       return;
     }
 
-    // Update the package's status to match
+    // Update the package's status, and if approved, the awarded credit too
+    const updatePayload = { status: decision };
+    if (decision === "approved") {
+      updatePayload.awarded_credit_category = awardCategory;
+      updatePayload.awarded_credit_value = parseFloat(awardValue);
+    }
+
     const { error: updateError } = await client
       .from("review_packages")
-      .update({ status: decision })
+      .update(updatePayload)
       .eq("id", currentPackage.id);
 
     document.getElementById("approve-btn").disabled = false;
