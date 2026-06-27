@@ -218,6 +218,8 @@
       .from("students")
       .select("id, first_name, last_name, grade_level")
       .eq("partner_school_id", myAccount.partner_school_id)
+      .gte("grade_level", 9)
+      .lte("grade_level", 12)
       .order("last_name");
 
     const select = document.getElementById("student-select");
