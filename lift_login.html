@@ -166,14 +166,7 @@
     }
 
     if (data.role === "teacher") {
-      // Teachers don't have a unified home page yet (high school vs.
-      // elementary screens haven't been merged), so show the basic
-      // confirmation screen for now rather than guessing which one to send them to.
-      document.getElementById("info-name").textContent = data.name;
-      document.getElementById("info-email").textContent = data.email;
-      document.getElementById("info-role").textContent = data.role;
-      loginCard.style.display = "none";
-      successCard.style.display = "block";
+      window.location.href = "lift_home_teacher.html";
       return;
     }
 

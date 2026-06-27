@@ -86,7 +86,7 @@
 
   <div class="card">
     <h1>LIFT Global Academy</h1>
-    <div class="top-subtitle">School administrator dashboard — signed in as <span id="who-am-i"></span></div>
+    <div class="top-subtitle">School administrator dashboard — signed in as <span id="who-am-i"></span> &middot; <a href="lift_home_evaluator.html">&larr; back to home</a></div>
   </div>
 
   <div class="card">
@@ -132,7 +132,22 @@
       <label for="student-last">Last name</label>
       <input type="text" id="student-last" required>
       <label for="student-grade">Grade level</label>
-      <input type="number" id="student-grade" min="0" max="12" required>
+      <select id="student-grade" required>
+        <option value="-1">Pre-K</option>
+        <option value="0">Kindergarten</option>
+        <option value="1">Grade 1</option>
+        <option value="2">Grade 2</option>
+        <option value="3">Grade 3</option>
+        <option value="4">Grade 4</option>
+        <option value="5">Grade 5</option>
+        <option value="6">Grade 6</option>
+        <option value="7">Grade 7</option>
+        <option value="8">Grade 8</option>
+        <option value="9">Grade 9</option>
+        <option value="10">Grade 10</option>
+        <option value="11">Grade 11</option>
+        <option value="12">Grade 12</option>
+      </select>
       <button type="submit">Add student</button>
     </form>
     <div class="msg" id="student-msg"></div>
