@@ -4,82 +4,56 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LIFT Global Academy — Graduation Progress</title>
+<link rel="stylesheet" href="lift-style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
-    background: #f4f4f2;
-    min-height: 100vh;
-    padding: 20px;
-  }
-  .wrap { max-width: 720px; margin: 0 auto; }
-  .card {
-    background: #ffffff;
-    border-radius: 12px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-    padding: 32px;
-    margin-bottom: 24px;
-  }
-  h1 { font-size: 22px; font-weight: 600; color: #1a2e44; margin-bottom: 4px; }
-  .top-subtitle { font-size: 13px; color: #6b7280; }
-  h2 { font-size: 16px; font-weight: 600; color: #1a2e44; margin-bottom: 14px; }
-  select {
-    width: 100%;
-    padding: 10px 12px;
-    border: 1px solid #d1d5db;
-    border-radius: 8px;
-    font-size: 14px;
-    background: white;
-  }
-  .overall-bar-wrap { margin-top: 20px; }
-  .overall-label { display: flex; justify-content: space-between; font-size: 13px; color: #374151; margin-bottom: 6px; }
-  .bar-track { background: #f0f0f0; border-radius: 6px; height: 10px; overflow: hidden; }
-  .bar-fill { height: 100%; background: #1a2e44; border-radius: 6px; }
-  .bar-fill.complete { background: #1e7b34; }
-  .req-row { padding: 14px 0; border-bottom: 1px solid #f0f0f0; }
-  .req-row:last-child { border-bottom: none; }
-  .req-top { display: flex; justify-content: space-between; font-size: 14px; font-weight: 500; margin-bottom: 6px; }
-  .req-credits { color: #6b7280; font-weight: 400; }
-  .req-row .bar-track { height: 7px; }
-  .req-row .bar-fill { background: #5b7fa6; }
-  .req-row .bar-fill.complete { background: #1e7b34; }
-  .req-note { font-size: 11px; color: #9ca3af; margin-top: 4px; }
-  .empty-note { color: #9ca3af; font-size: 13px; padding: 8px 0; }
-  .gate { text-align: center; padding: 60px 20px; color: #6b7280; }
-</style>
 </head>
-<body>
+<body class="page">
 
 <div class="wrap" id="gate-wrap">
-  <div class="card gate" id="gate">Checking your session...</div>
+  <div class="card gate" id="gate">
+    <div class="spinner"></div>
+    Checking your session...
+  </div>
 </div>
 
-<div class="wrap" id="app-wrap" style="display:none;">
+<div id="app-wrap" style="display:none;">
 
-  <div class="card">
-    <h1>LIFT Global Academy</h1>
-    <div class="top-subtitle">Graduation progress — signed in as <span id="who-am-i"></span> &middot; <a href="lift_home_evaluator.html">&larr; back to home</a></div>
-  </div>
-
-  <div class="card">
-    <h2>Select a student</h2>
-    <select id="student-select"></select>
-
-    <div class="overall-bar-wrap" id="overall-wrap" style="display:none;">
-      <div class="overall-label">
-        <span>Overall progress</span>
-        <span id="overall-text"></span>
+  <div class="navbar">
+    <div class="navbar-inner">
+      <a class="navbar-brand" href="lift_home_evaluator.html">
+        <img class="navbar-logo" src="lift-logo.png" alt="LIFT Global Academy logo">
+        <div>
+          <div class="navbar-title">Graduation progress</div>
+          <div class="navbar-subtitle">Signed in as <span id="who-am-i"></span></div>
+        </div>
+      </a>
+      <div class="navbar-actions">
+        <a class="navbar-back" href="lift_home_evaluator.html">&larr; Back to home</a>
       </div>
-      <div class="bar-track"><div class="bar-fill" id="overall-bar"></div></div>
     </div>
   </div>
 
-  <div class="card" id="detail-card" style="display:none;">
-    <h2>Credits by requirement</h2>
-    <div id="requirements-list"></div>
-  </div>
+  <div class="wrap">
 
+    <div class="card">
+      <h2>Select a student</h2>
+      <select id="student-select"></select>
+
+      <div class="overall-bar-wrap" id="overall-wrap" style="display:none;">
+        <div class="overall-label">
+          <span>Overall progress</span>
+          <span id="overall-text"></span>
+        </div>
+        <div class="bar-track"><div class="bar-fill" id="overall-bar"></div></div>
+      </div>
+    </div>
+
+    <div class="card" id="detail-card" style="display:none;">
+      <h2>Credits by requirement</h2>
+      <div id="requirements-list"></div>
+    </div>
+
+  </div>
 </div>
 
 <script>

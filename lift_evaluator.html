@@ -4,155 +4,91 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LIFT Global Academy — Evaluator</title>
+<link rel="stylesheet" href="lift-style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
-    background: #f4f4f2;
-    min-height: 100vh;
-    padding: 20px;
-  }
-  .wrap { max-width: 720px; margin: 0 auto; }
-  .card {
-    background: #ffffff;
-    border-radius: 12px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-    padding: 32px;
-    margin-bottom: 24px;
-  }
-  h1 { font-size: 22px; font-weight: 600; color: #1a2e44; margin-bottom: 4px; }
-  .top-subtitle { font-size: 13px; color: #6b7280; }
-  h2 { font-size: 16px; font-weight: 600; color: #1a2e44; margin-bottom: 14px; }
-  .queue-item {
-    border: 1px solid #e5e7eb;
-    border-radius: 10px;
-    padding: 16px;
-    margin-bottom: 12px;
-    cursor: pointer;
-  }
-  .queue-item:hover { border-color: #1a2e44; }
-  .queue-item .row1 { display: flex; justify-content: space-between; align-items: baseline; }
-  .queue-item .student-name { font-weight: 600; font-size: 15px; color: #1a2e44; }
-  .queue-item .meta { color: #6b7280; font-size: 12px; margin-top: 4px; }
-  .status-pill {
-    font-size: 11px;
-    padding: 2px 8px;
-    border-radius: 10px;
-    font-weight: 500;
-    white-space: nowrap;
-  }
-  .status-pending_review { background: #fef3c7; color: #92400e; }
-  .status-approved { background: #d1fae5; color: #065f46; }
-  .status-revisions_requested { background: #fee2e2; color: #991b1b; }
-  .empty-note { color: #9ca3af; font-size: 13px; padding: 8px 0; }
-  .gate { text-align: center; padding: 60px 20px; color: #6b7280; }
-
-  /* Detail panel */
-  .detail-row { margin-bottom: 16px; }
-  .detail-label { font-size: 12px; color: #6b7280; font-weight: 500; margin-bottom: 4px; }
-  .detail-value { font-size: 14px; color: #111827; white-space: pre-wrap; }
-  .grade-display { font-size: 28px; font-weight: 600; color: #1a2e44; }
-  textarea#evaluator-note {
-    width: 100%;
-    padding: 10px 12px;
-    border: 1px solid #d1d5db;
-    border-radius: 8px;
-    font-size: 14px;
-    min-height: 80px;
-    font-family: inherit;
-    margin-top: 8px;
-  }
-  .actions { margin-top: 18px; display: flex; gap: 10px; flex-wrap: wrap; }
-  button {
-    padding: 10px 18px;
-    border: none;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-  }
-  button.approve { background: #1e7b34; color: white; }
-  button.revise { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
-  button.back { background: white; color: #1a2e44; border: 1px solid #d1d5db; }
-  button:disabled { opacity: 0.5; cursor: not-allowed; }
-  .msg {
-    margin-top: 14px;
-    padding: 10px 12px;
-    border-radius: 8px;
-    font-size: 13px;
-    display: none;
-  }
-  .msg.error { background: #fef2f2; color: #991b1b; }
-  .msg.success { background: #ecfdf5; color: #065f46; }
-</style>
 </head>
-<body>
+<body class="page">
 
 <div class="wrap" id="gate-wrap">
-  <div class="card gate" id="gate">Checking your session...</div>
+  <div class="card gate" id="gate">
+    <div class="spinner"></div>
+    Checking your session...
+  </div>
 </div>
 
-<div class="wrap" id="app-wrap" style="display:none;">
+<div id="app-wrap" style="display:none;">
 
-  <div class="card">
-    <h1>LIFT Global Academy</h1>
-    <div class="top-subtitle">Evaluator review queue — signed in as <span id="who-am-i"></span> &middot; <a href="lift_home_evaluator.html">&larr; back to home</a></div>
-  </div>
-
-  <div class="card" id="queue-card">
-    <h2>Pending review</h2>
-    <div id="queue-list"></div>
-  </div>
-
-  <div class="card" id="detail-card" style="display:none;">
-    <button class="back" id="back-btn">&larr; Back to queue</button>
-    <div style="margin-top:20px;">
-      <div class="detail-row">
-        <div class="detail-label">Student</div>
-        <div class="detail-value" id="d-student"></div>
+  <div class="navbar">
+    <div class="navbar-inner">
+      <a class="navbar-brand" href="lift_home_evaluator.html">
+        <img class="navbar-logo" src="lift-logo.png" alt="LIFT Global Academy logo">
+        <div>
+          <div class="navbar-title">Evaluator review queue</div>
+          <div class="navbar-subtitle">Signed in as <span id="who-am-i"></span></div>
+        </div>
+      </a>
+      <div class="navbar-actions">
+        <a class="navbar-back" href="lift_home_evaluator.html">&larr; Back to home</a>
       </div>
-      <div class="detail-row">
-        <div class="detail-label">Subject</div>
-        <div class="detail-value" id="d-subject"></div>
-      </div>
-      <div class="detail-row">
-        <div class="detail-label">Submitted by</div>
-        <div class="detail-value" id="d-teacher"></div>
-      </div>
-      <div class="detail-row">
-        <div class="detail-label">Grade submitted</div>
-        <div class="grade-display" id="d-grade"></div>
-      </div>
-      <div class="detail-row">
-        <div class="detail-label">Written evaluation</div>
-        <div class="detail-value" id="d-evaluation"></div>
-      </div>
-      <div class="detail-row">
-        <div class="detail-label">Teacher comments to LIFT</div>
-        <div class="detail-value" id="d-comments"></div>
-      </div>
-      <div class="detail-row">
-        <div class="detail-label">Attached documents</div>
-        <div id="d-documents"></div>
-      </div>
-      <div class="detail-row">
-        <div class="detail-label">Award credit (required to approve)</div>
-        <select id="award-category" style="margin-bottom:8px;"></select>
-        <input type="number" id="award-value" step="0.5" placeholder="Credit value, e.g. 10">
-      </div>
-      <div class="detail-row">
-        <div class="detail-label">Evaluator note (required if requesting revisions)</div>
-        <textarea id="evaluator-note" placeholder="Explain what's missing or needs correction..."></textarea>
-      </div>
-      <div class="actions">
-        <button class="approve" id="approve-btn">&#9989; Approve</button>
-        <button class="revise" id="revise-btn">&#10060; Request revisions</button>
-      </div>
-      <div class="msg" id="detail-msg"></div>
     </div>
   </div>
 
+  <div class="wrap">
+
+    <div class="card" id="queue-card">
+      <h2>Pending review</h2>
+      <div id="queue-list"></div>
+    </div>
+
+    <div class="card" id="detail-card" style="display:none;">
+      <button class="back" id="back-btn">&larr; Back to queue</button>
+      <div style="margin-top:20px;">
+        <div class="detail-row">
+          <div class="detail-label">Student</div>
+          <div class="detail-value" id="d-student"></div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">Subject</div>
+          <div class="detail-value" id="d-subject"></div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">Submitted by</div>
+          <div class="detail-value" id="d-teacher"></div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">Grade submitted</div>
+          <div class="grade-display" id="d-grade"></div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">Written evaluation</div>
+          <div class="detail-value" id="d-evaluation"></div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">Teacher comments to LIFT</div>
+          <div class="detail-value" id="d-comments"></div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">Attached documents</div>
+          <div id="d-documents"></div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">Award credit (required to approve)</div>
+          <select id="award-category" style="margin-bottom:8px;"></select>
+          <input type="number" id="award-value" step="0.5" placeholder="Credit value, e.g. 10">
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">Evaluator note (required if requesting revisions)</div>
+          <textarea id="evaluator-note" placeholder="Explain what's missing or needs correction..."></textarea>
+        </div>
+        <div class="actions">
+          <button class="approve" id="approve-btn">&#9989; Approve</button>
+          <button class="revise" id="revise-btn">&#10060; Request revisions</button>
+        </div>
+        <div class="msg" id="detail-msg"></div>
+      </div>
+    </div>
+
+  </div>
 </div>
 
 <script>

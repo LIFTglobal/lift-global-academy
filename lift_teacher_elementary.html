@@ -4,149 +4,60 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LIFT Global Academy — Elementary Teacher</title>
+<link rel="stylesheet" href="lift-style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
-    background: #f4f4f2;
-    min-height: 100vh;
-    padding: 20px;
-  }
-  .wrap { max-width: 680px; margin: 0 auto; }
-  .card {
-    background: #ffffff;
-    border-radius: 12px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-    padding: 32px;
-    margin-bottom: 24px;
-  }
-  h1 { font-size: 22px; font-weight: 600; color: #1a2e44; margin-bottom: 4px; }
-  .top-subtitle { font-size: 13px; color: #6b7280; }
-  h2 { font-size: 16px; font-weight: 600; color: #1a2e44; margin-bottom: 14px; }
-  label {
-    display: block;
-    font-size: 13px;
-    color: #374151;
-    margin-bottom: 6px;
-    font-weight: 500;
-    margin-top: 14px;
-  }
-  label:first-of-type { margin-top: 0; }
-  input, select, textarea {
-    width: 100%;
-    padding: 10px 12px;
-    border: 1px solid #d1d5db;
-    border-radius: 8px;
-    font-size: 14px;
-    background: white;
-    font-family: inherit;
-  }
-  textarea { resize: vertical; min-height: 60px; }
-  input:focus, select:focus, textarea:focus { outline: none; border-color: #1a2e44; }
-  button {
-    margin-top: 18px;
-    padding: 10px 18px;
-    background: #1a2e44;
-    color: white;
-    border: none;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-  }
-  button.secondary {
-    background: white;
-    color: #1a2e44;
-    border: 1px solid #d1d5db;
-    margin-left: 10px;
-  }
-  button:disabled { background: #9ca3af; cursor: not-allowed; }
-  .subject-block {
-    border: 1px solid #e5e7eb;
-    border-radius: 10px;
-    padding: 16px;
-    margin-bottom: 14px;
-  }
-  .subject-block h3 {
-    font-size: 14px;
-    font-weight: 600;
-    color: #1a2e44;
-    margin-bottom: 10px;
-  }
-  .subject-row {
-    display: grid;
-    grid-template-columns: 140px 1fr;
-    gap: 12px;
-    margin-bottom: 10px;
-  }
-  .subject-row label { margin-top: 0; }
-  .msg {
-    margin-top: 14px;
-    padding: 10px 12px;
-    border-radius: 8px;
-    font-size: 13px;
-    display: none;
-  }
-  .msg.error { background: #fef2f2; color: #991b1b; }
-  .msg.success { background: #ecfdf5; color: #065f46; }
-  .list-item {
-    padding: 12px 0;
-    border-bottom: 1px solid #f0f0f0;
-    font-size: 14px;
-  }
-  .list-item:last-child { border-bottom: none; }
-  .list-item .row1 { display: flex; justify-content: space-between; font-weight: 500; }
-  .list-item .meta { color: #6b7280; font-size: 12px; margin-top: 2px; }
-  .status-pill {
-    font-size: 11px;
-    padding: 2px 8px;
-    border-radius: 10px;
-    font-weight: 500;
-  }
-  .status-draft { background: #f3f4f6; color: #4b5563; }
-  .status-pending_review { background: #fef3c7; color: #92400e; }
-  .status-approved { background: #d1fae5; color: #065f46; }
-  .status-revisions_requested { background: #fee2e2; color: #991b1b; }
-  .empty-note { color: #9ca3af; font-size: 13px; padding: 8px 0; }
-  .gate { text-align: center; padding: 60px 20px; color: #6b7280; }
-</style>
 </head>
-<body>
+<body class="page">
 
 <div class="wrap" id="gate-wrap">
-  <div class="card gate" id="gate">Checking your session...</div>
+  <div class="card gate" id="gate">
+    <div class="spinner"></div>
+    Checking your session...
+  </div>
 </div>
 
-<div class="wrap" id="app-wrap" style="display:none;">
+<div id="app-wrap" style="display:none;">
 
-  <div class="card">
-    <h1>LIFT Global Academy</h1>
-    <div class="top-subtitle">Elementary classroom report — signed in as <span id="who-am-i"></span> &middot; <a href="lift_home_teacher.html">&larr; back to home</a></div>
+  <div class="navbar">
+    <div class="navbar-inner">
+      <a class="navbar-brand" href="lift_home_teacher.html">
+        <img class="navbar-logo" src="lift-logo.png" alt="LIFT Global Academy logo">
+        <div>
+          <div class="navbar-title">Elementary classroom report</div>
+          <div class="navbar-subtitle">Signed in as <span id="who-am-i"></span></div>
+        </div>
+      </a>
+      <div class="navbar-actions">
+        <a class="navbar-back" href="lift_home_teacher.html">&larr; Back to home</a>
+      </div>
+    </div>
   </div>
 
-  <div class="card">
-    <h2>Select a student</h2>
-    <select id="student-select"></select>
+  <div class="wrap">
+
+    <div class="card">
+      <h2>Select a student</h2>
+      <select id="student-select"></select>
+    </div>
+
+    <div class="card" id="subjects-card" style="display:none;">
+      <h2>Term report — all subjects</h2>
+      <div id="subjects-container"></div>
+
+      <label for="comments">Comments for LIFT (optional)</label>
+      <textarea id="comments" placeholder="Anything LIFT's evaluator should know about this student's term"></textarea>
+
+      <button type="button" id="draft-btn">Save as draft</button>
+      <button type="button" class="secondary" id="submit-btn">Submit for review</button>
+      <div class="msg" id="form-msg"></div>
+    </div>
+
+    <div class="card">
+      <h2>Submitted reports this term</h2>
+      <div id="submissions-list"></div>
+    </div>
+
   </div>
-
-  <div class="card" id="subjects-card" style="display:none;">
-    <h2>Term report — all subjects</h2>
-    <div id="subjects-container"></div>
-
-    <label for="comments">Comments for LIFT (optional)</label>
-    <textarea id="comments" placeholder="Anything LIFT's evaluator should know about this student's term"></textarea>
-
-    <button type="button" id="draft-btn">Save as draft</button>
-    <button type="button" class="secondary" id="submit-btn">Submit for review</button>
-    <div class="msg" id="form-msg"></div>
-  </div>
-
-  <div class="card">
-    <h2>Submitted reports this term</h2>
-    <div id="submissions-list"></div>
-  </div>
-
 </div>
 
 <script>

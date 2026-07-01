@@ -4,156 +4,103 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LIFT Global Academy — Admin</title>
+<link rel="stylesheet" href="lift-style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
-    background: #f4f4f2;
-    min-height: 100vh;
-    padding: 20px;
-  }
-  .wrap { max-width: 640px; margin: 0 auto; }
-  .card {
-    background: #ffffff;
-    border-radius: 12px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-    padding: 32px;
-    margin-bottom: 24px;
-  }
-  h1 { font-size: 22px; font-weight: 600; color: #1a2e44; margin-bottom: 4px; }
-  .top-subtitle { font-size: 13px; color: #6b7280; margin-bottom: 28px; }
-  h2 { font-size: 16px; font-weight: 600; color: #1a2e44; margin-bottom: 14px; }
-  label {
-    display: block;
-    font-size: 13px;
-    color: #374151;
-    margin-bottom: 6px;
-    font-weight: 500;
-    margin-top: 14px;
-  }
-  label:first-of-type { margin-top: 0; }
-  input, select {
-    width: 100%;
-    padding: 10px 12px;
-    border: 1px solid #d1d5db;
-    border-radius: 8px;
-    font-size: 14px;
-    background: white;
-  }
-  input:focus, select:focus { outline: none; border-color: #1a2e44; }
-  button {
-    margin-top: 18px;
-    padding: 10px 18px;
-    background: #1a2e44;
-    color: white;
-    border: none;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-  }
-  button:disabled { background: #9ca3af; cursor: not-allowed; }
-  .msg {
-    margin-top: 14px;
-    padding: 10px 12px;
-    border-radius: 8px;
-    font-size: 13px;
-    display: none;
-  }
-  .msg.error { background: #fef2f2; color: #991b1b; }
-  .msg.success { background: #ecfdf5; color: #065f46; }
-  .list-item {
-    display: flex;
-    justify-content: space-between;
-    padding: 10px 0;
-    border-bottom: 1px solid #f0f0f0;
-    font-size: 14px;
-  }
-  .list-item:last-child { border-bottom: none; }
-  .list-item .meta { color: #6b7280; font-size: 12px; }
-  .empty-note { color: #9ca3af; font-size: 13px; padding: 8px 0; }
-  .gate { text-align: center; padding: 60px 20px; color: #6b7280; }
-</style>
 </head>
-<body>
+<body class="page">
 
 <div class="wrap" id="gate-wrap">
-  <div class="card gate" id="gate">Checking your session...</div>
+  <div class="card gate" id="gate">
+    <div class="spinner"></div>
+    Checking your session...
+  </div>
 </div>
 
-<div class="wrap" id="app-wrap" style="display:none;">
+<div id="app-wrap" style="display:none;">
 
-  <div class="card">
-    <h1>LIFT Global Academy</h1>
-    <div class="top-subtitle">School administrator dashboard — signed in as <span id="who-am-i"></span> &middot; <a href="lift_home_evaluator.html">&larr; back to home</a></div>
+  <div class="navbar">
+    <div class="navbar-inner">
+      <a class="navbar-brand" href="lift_home_evaluator.html">
+        <img class="navbar-logo" src="lift-logo.png" alt="LIFT Global Academy logo">
+        <div>
+          <div class="navbar-title">School administrator dashboard</div>
+          <div class="navbar-subtitle">Signed in as <span id="who-am-i"></span></div>
+        </div>
+      </a>
+      <div class="navbar-actions">
+        <a class="navbar-back" href="lift_home_evaluator.html">&larr; Back to home</a>
+      </div>
+    </div>
   </div>
 
-  <div class="card">
-    <h2>Add a partner school</h2>
-    <form id="school-form">
-      <label for="school-name">School name</label>
-      <input type="text" id="school-name" placeholder="e.g. Cedar Hill Learning Center" required>
-      <label for="school-type">Partner type</label>
-      <select id="school-type">
-        <option value="learning_center_microschool">Learning center / microschool</option>
-        <option value="international_school">Unaccredited international school</option>
-      </select>
-      <button type="submit">Add school</button>
-    </form>
-    <div class="msg" id="school-msg"></div>
-    <div id="school-list" style="margin-top:18px;"></div>
-  </div>
+  <div class="wrap">
 
-  <div class="card">
-    <h2>Add a teacher</h2>
-    <form id="teacher-form">
-      <label for="teacher-school">Partner school</label>
-      <select id="teacher-school" required></select>
-      <label for="teacher-name">Teacher name</label>
-      <input type="text" id="teacher-name" placeholder="e.g. J. Alavi" required>
-      <label for="teacher-email">Teacher email</label>
-      <input type="email" id="teacher-email" placeholder="teacher@example.com" required>
-      <label for="teacher-password">Temporary password</label>
-      <input type="text" id="teacher-password" placeholder="Give them something to start with" required>
-      <button type="submit">Add teacher</button>
-    </form>
-    <div class="msg" id="teacher-msg"></div>
-    <div id="teacher-list" style="margin-top:18px;"></div>
-  </div>
+    <div class="card">
+      <h2>Add a partner school</h2>
+      <form id="school-form">
+        <label for="school-name">School name</label>
+        <input type="text" id="school-name" placeholder="e.g. Cedar Hill Learning Center" required>
+        <label for="school-type">Partner type</label>
+        <select id="school-type">
+          <option value="learning_center_microschool">Learning center / microschool</option>
+          <option value="international_school">Unaccredited international school</option>
+        </select>
+        <button type="submit">Add school</button>
+      </form>
+      <div class="msg" id="school-msg"></div>
+      <div id="school-list" style="margin-top:18px;"></div>
+    </div>
 
-  <div class="card">
-    <h2>Add a student</h2>
-    <form id="student-form">
-      <label for="student-school">Partner school</label>
-      <select id="student-school" required></select>
-      <label for="student-first">First name</label>
-      <input type="text" id="student-first" required>
-      <label for="student-last">Last name</label>
-      <input type="text" id="student-last" required>
-      <label for="student-grade">Grade level</label>
-      <select id="student-grade" required>
-        <option value="-1">Pre-K</option>
-        <option value="0">Kindergarten</option>
-        <option value="1">Grade 1</option>
-        <option value="2">Grade 2</option>
-        <option value="3">Grade 3</option>
-        <option value="4">Grade 4</option>
-        <option value="5">Grade 5</option>
-        <option value="6">Grade 6</option>
-        <option value="7">Grade 7</option>
-        <option value="8">Grade 8</option>
-        <option value="9">Grade 9</option>
-        <option value="10">Grade 10</option>
-        <option value="11">Grade 11</option>
-        <option value="12">Grade 12</option>
-      </select>
-      <button type="submit">Add student</button>
-    </form>
-    <div class="msg" id="student-msg"></div>
-    <div id="student-list" style="margin-top:18px;"></div>
-  </div>
+    <div class="card">
+      <h2>Add a teacher</h2>
+      <form id="teacher-form">
+        <label for="teacher-school">Partner school</label>
+        <select id="teacher-school" required></select>
+        <label for="teacher-name">Teacher name</label>
+        <input type="text" id="teacher-name" placeholder="e.g. J. Alavi" required>
+        <label for="teacher-email">Teacher email</label>
+        <input type="email" id="teacher-email" placeholder="teacher@example.com" required>
+        <label for="teacher-password">Temporary password</label>
+        <input type="text" id="teacher-password" placeholder="Give them something to start with" required>
+        <button type="submit">Add teacher</button>
+      </form>
+      <div class="msg" id="teacher-msg"></div>
+      <div id="teacher-list" style="margin-top:18px;"></div>
+    </div>
 
+    <div class="card">
+      <h2>Add a student</h2>
+      <form id="student-form">
+        <label for="student-school">Partner school</label>
+        <select id="student-school" required></select>
+        <label for="student-first">First name</label>
+        <input type="text" id="student-first" required>
+        <label for="student-last">Last name</label>
+        <input type="text" id="student-last" required>
+        <label for="student-grade">Grade level</label>
+        <select id="student-grade" required>
+          <option value="-1">Pre-K</option>
+          <option value="0">Kindergarten</option>
+          <option value="1">Grade 1</option>
+          <option value="2">Grade 2</option>
+          <option value="3">Grade 3</option>
+          <option value="4">Grade 4</option>
+          <option value="5">Grade 5</option>
+          <option value="6">Grade 6</option>
+          <option value="7">Grade 7</option>
+          <option value="8">Grade 8</option>
+          <option value="9">Grade 9</option>
+          <option value="10">Grade 10</option>
+          <option value="11">Grade 11</option>
+          <option value="12">Grade 12</option>
+        </select>
+        <button type="submit">Add student</button>
+      </form>
+      <div class="msg" id="student-msg"></div>
+      <div id="student-list" style="margin-top:18px;"></div>
+    </div>
+
+  </div>
 </div>
 
 <script>
