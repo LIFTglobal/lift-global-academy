@@ -94,10 +94,116 @@
           <option value="11">Grade 11</option>
           <option value="12">Grade 12</option>
         </select>
+
+        <label for="student-dob">Date of birth</label>
+        <input type="date" id="student-dob">
+
+        <label for="student-gender">Gender</label>
+        <select id="student-gender">
+          <option value="">Prefer not to say</option>
+          <option value="Male">Male</option>
+          <option value="Female">Female</option>
+          <option value="Other">Other</option>
+        </select>
+
+        <label for="student-parent">Parent/guardian name</label>
+        <input type="text" id="student-parent" placeholder="e.g. John &amp; Jane Smith">
+
+        <label for="student-address">Street address</label>
+        <input type="text" id="student-address" placeholder="e.g. 160 Central Park South">
+
+        <div style="display:grid; grid-template-columns: 2fr 1fr 1fr; gap:10px;">
+          <div>
+            <label for="student-city">City</label>
+            <input type="text" id="student-city">
+          </div>
+          <div>
+            <label for="student-state">State</label>
+            <input type="text" id="student-state">
+          </div>
+          <div>
+            <label for="student-zip">ZIP</label>
+            <input type="text" id="student-zip">
+          </div>
+        </div>
+
         <button type="submit">Add student</button>
       </form>
       <div class="msg" id="student-msg"></div>
       <div id="student-list" style="margin-top:18px;"></div>
+    </div>
+
+    <div class="card">
+      <h2>Student school history</h2>
+      <div class="hint" style="margin-top:0; margin-bottom:14px;">Used on transcripts to list every school a student has attended — add one row per school year.</div>
+
+      <label for="history-student-select">Student</label>
+      <select id="history-student-select"></select>
+      <div id="history-list" style="margin:16px 0;"></div>
+
+      <h3>Add a school history entry</h3>
+      <form id="history-form">
+        <label for="hist-school-name">School name</label>
+        <input type="text" id="hist-school-name" required placeholder="e.g. ABC School">
+
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+          <div>
+            <label for="hist-teacher">Teacher name</label>
+            <input type="text" id="hist-teacher">
+          </div>
+          <div>
+            <label for="hist-grade-label">Grade level</label>
+            <input type="text" id="hist-grade-label" placeholder="e.g. 1st, 10th">
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px;">
+          <div>
+            <label for="hist-days-present">Days present</label>
+            <input type="number" id="hist-days-present" min="0">
+          </div>
+          <div>
+            <label for="hist-days-absent">Days absent</label>
+            <input type="number" id="hist-days-absent" min="0">
+          </div>
+          <div>
+            <label for="hist-promotion">Promotion status</label>
+            <input type="text" id="hist-promotion" placeholder="e.g. Promoted">
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+          <div>
+            <label for="hist-entered">Entered</label>
+            <input type="date" id="hist-entered">
+          </div>
+          <div>
+            <label for="hist-exited">Exited</label>
+            <input type="date" id="hist-exited">
+          </div>
+        </div>
+
+        <label for="hist-address">School address</label>
+        <input type="text" id="hist-address">
+
+        <div style="display:grid; grid-template-columns: 2fr 1fr 1fr; gap:10px;">
+          <div>
+            <label for="hist-city">City</label>
+            <input type="text" id="hist-city">
+          </div>
+          <div>
+            <label for="hist-state">State</label>
+            <input type="text" id="hist-state">
+          </div>
+          <div>
+            <label for="hist-zip">ZIP</label>
+            <input type="text" id="hist-zip">
+          </div>
+        </div>
+
+        <button type="submit">Add entry</button>
+      </form>
+      <div class="msg" id="history-msg"></div>
     </div>
 
   </div>
@@ -122,6 +228,7 @@
   }
 
   let cachedSchools = [];
+  let cachedStudents = [];
 
   // ---------- Gate: only allow school_admin accounts in ----------
   async function checkAccess() {
@@ -165,7 +272,7 @@
   async function loadSchools() {
     const { data, error } = await client
       .from("partner_schools")
-      .select("id, name, partner_type")
+      .select("id, name, partner_type, logo_url")
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -178,10 +285,61 @@
 
     const listEl = document.getElementById("school-list");
     listEl.innerHTML = cachedSchools.length
-      ? cachedSchools.map(s =>
-          '<div class="list-item"><span>' + s.name + '</span><span class="meta">' + s.partner_type + "</span></div>"
-        ).join("")
+      ? cachedSchools.map(s => {
+          const logoImg = s.logo_url
+            ? '<img src="' + s.logo_url + '" alt="" style="width:26px;height:26px;border-radius:50%;object-fit:cover;margin-right:8px;vertical-align:middle;">'
+            : "";
+          return '<div class="list-item" style="align-items:center;">' +
+            '<span style="display:flex;align-items:center;">' + logoImg + s.name + "</span>" +
+            '<span class="meta">' + s.partner_type + "</span></div>" +
+            '<div style="display:flex; gap:8px; align-items:center; padding:0 0 12px;">' +
+              '<input type="file" accept="image/*" class="logo-file-input" data-school-id="' + s.id + '" style="max-width:220px; font-size:12px;">' +
+              '<button type="button" class="secondary logo-upload-btn" data-school-id="' + s.id + '">Upload logo</button>' +
+            "</div>";
+        }).join("")
       : '<div class="empty-note">No schools added yet.</div>';
+
+    document.querySelectorAll(".logo-upload-btn").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const schoolId = btn.dataset.schoolId;
+        const fileInput = document.querySelector('.logo-file-input[data-school-id="' + schoolId + '"]');
+        const file = fileInput.files[0];
+        if (!file) {
+          alert("Choose an image file first.");
+          return;
+        }
+        btn.disabled = true;
+        btn.textContent = "Uploading...";
+        try {
+          const path = schoolId + "/logo_" + Date.now() + "_" + file.name;
+          const { error: uploadError } = await client.storage
+            .from("school-logos")
+            .upload(path, file, { upsert: true });
+
+          if (uploadError) {
+            alert("Upload failed: " + uploadError.message);
+            return;
+          }
+
+          const { data: publicUrlData } = client.storage.from("school-logos").getPublicUrl(path);
+
+          const { error: updateError } = await client
+            .from("partner_schools")
+            .update({ logo_url: publicUrlData.publicUrl })
+            .eq("id", schoolId);
+
+          if (updateError) {
+            alert("Saved the file, but could not link it to the school: " + updateError.message);
+            return;
+          }
+
+          await loadSchools();
+        } finally {
+          btn.disabled = false;
+          btn.textContent = "Upload logo";
+        }
+      });
+    });
 
     const schoolOptions = cachedSchools.map(s =>
       '<option value="' + s.id + '">' + s.name + "</option>"
@@ -284,7 +442,7 @@
   async function loadStudents() {
     const { data, error } = await client
       .from("students")
-      .select("first_name, last_name, grade_level, partner_school_id")
+      .select("id, first_name, last_name, grade_level, partner_school_id")
       .order("created_at", { ascending: false });
 
     const listEl = document.getElementById("student-list");
@@ -293,14 +451,22 @@
       return;
     }
 
-    listEl.innerHTML = data.length
-      ? data.map(s => {
+    cachedStudents = data || [];
+
+    listEl.innerHTML = cachedStudents.length
+      ? cachedStudents.map(s => {
           const school = cachedSchools.find(sc => sc.id === s.partner_school_id);
           return '<div class="list-item"><span>' + s.first_name + " " + s.last_name +
                  " (Grade " + s.grade_level + ')</span><span class="meta">' +
                  (school ? school.name : "") + "</span></div>";
         }).join("")
       : '<div class="empty-note">No students added yet.</div>';
+
+    const historySelect = document.getElementById("history-student-select");
+    const studentOptions = cachedStudents.map(s =>
+      '<option value="' + s.id + '">' + s.first_name + " " + s.last_name + "</option>"
+    ).join("");
+    historySelect.innerHTML = '<option value="">Choose a student...</option>' + studentOptions;
   }
 
   document.getElementById("student-form").addEventListener("submit", async (e) => {
@@ -312,9 +478,17 @@
     const first_name = document.getElementById("student-first").value.trim();
     const last_name = document.getElementById("student-last").value.trim();
     const grade_level = parseInt(document.getElementById("student-grade").value, 10);
+    const date_of_birth = document.getElementById("student-dob").value || null;
+    const gender = document.getElementById("student-gender").value || null;
+    const parent_guardian_name = document.getElementById("student-parent").value.trim() || null;
+    const address_line = document.getElementById("student-address").value.trim() || null;
+    const city = document.getElementById("student-city").value.trim() || null;
+    const state = document.getElementById("student-state").value.trim() || null;
+    const zip = document.getElementById("student-zip").value.trim() || null;
 
     const { error } = await client.from("students").insert({
       partner_school_id, first_name, last_name, grade_level,
+      date_of_birth, gender, parent_guardian_name, address_line, city, state, zip,
     });
 
     if (error) {
@@ -325,6 +499,111 @@
     showMsg(msgEl, "Student added.", "success");
     document.getElementById("student-form").reset();
     await loadStudents();
+  });
+
+  // ---------- Student school history ----------
+  document.getElementById("history-student-select").addEventListener("change", async (e) => {
+    const studentId = e.target.value;
+    if (!studentId) {
+      document.getElementById("history-list").innerHTML = "";
+      return;
+    }
+    await loadHistoryForStudent(studentId);
+  });
+
+  async function loadHistoryForStudent(studentId) {
+    const listEl = document.getElementById("history-list");
+    listEl.innerHTML = "Loading...";
+
+    const { data, error } = await client
+      .from("student_school_history")
+      .select("id, school_name, teacher_name, grade_level_label, days_present, days_absent, promotion_status, entered_date, exited_date, address_line, city, state, zip, sort_order")
+      .eq("student_id", studentId)
+      .order("sort_order");
+
+    if (error) {
+      listEl.innerHTML = '<div class="empty-note">Could not load school history: ' + error.message + "</div>";
+      return;
+    }
+
+    if (!data || data.length === 0) {
+      listEl.innerHTML = '<div class="empty-note">No school history entries yet.</div>';
+      return;
+    }
+
+    listEl.innerHTML = data.map(h => {
+      const parts = [];
+      if (h.grade_level_label) parts.push("Grade " + h.grade_level_label);
+      if (h.teacher_name) parts.push("Teacher: " + h.teacher_name);
+      if (h.days_present != null || h.days_absent != null) {
+        parts.push("Days " + (h.days_present != null ? h.days_present : "—") + "/" + (h.days_absent != null ? h.days_absent : "—"));
+      }
+      if (h.promotion_status) parts.push(h.promotion_status);
+      if (h.entered_date) parts.push("Entered " + h.entered_date);
+      if (h.exited_date) parts.push("Exited " + h.exited_date);
+      return '<div class="list-item">' +
+        "<div><div style=\"font-weight:600;\">" + h.school_name + "</div>" +
+        '<div class="meta">' + parts.join(" &middot; ") + "</div></div>" +
+        '<button type="button" class="back history-delete-btn" data-id="' + h.id + '" style="padding:6px 10px; font-size:12px;">Remove</button>' +
+        "</div>";
+    }).join("");
+
+    document.querySelectorAll(".history-delete-btn").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        if (!confirm("Remove this school history entry?")) return;
+        const { error: deleteError } = await client.from("student_school_history").delete().eq("id", btn.dataset.id);
+        if (deleteError) {
+          alert("Could not remove: " + deleteError.message);
+          return;
+        }
+        await loadHistoryForStudent(studentId);
+      });
+    });
+  }
+
+  document.getElementById("history-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const msgEl = document.getElementById("history-msg");
+    clearMsg(msgEl);
+
+    const studentId = document.getElementById("history-student-select").value;
+    if (!studentId) {
+      showMsg(msgEl, "Choose a student first.", "error");
+      return;
+    }
+
+    const { count } = await client
+      .from("student_school_history")
+      .select("id", { count: "exact", head: true })
+      .eq("student_id", studentId);
+
+    const payload = {
+      student_id: studentId,
+      school_name: document.getElementById("hist-school-name").value.trim(),
+      teacher_name: document.getElementById("hist-teacher").value.trim() || null,
+      grade_level_label: document.getElementById("hist-grade-label").value.trim() || null,
+      days_present: document.getElementById("hist-days-present").value ? parseInt(document.getElementById("hist-days-present").value, 10) : null,
+      days_absent: document.getElementById("hist-days-absent").value ? parseInt(document.getElementById("hist-days-absent").value, 10) : null,
+      promotion_status: document.getElementById("hist-promotion").value.trim() || null,
+      entered_date: document.getElementById("hist-entered").value || null,
+      exited_date: document.getElementById("hist-exited").value || null,
+      address_line: document.getElementById("hist-address").value.trim() || null,
+      city: document.getElementById("hist-city").value.trim() || null,
+      state: document.getElementById("hist-state").value.trim() || null,
+      zip: document.getElementById("hist-zip").value.trim() || null,
+      sort_order: count || 0,
+    };
+
+    const { error } = await client.from("student_school_history").insert(payload);
+
+    if (error) {
+      showMsg(msgEl, error.message, "error");
+      return;
+    }
+
+    showMsg(msgEl, "School history entry added.", "success");
+    document.getElementById("history-form").reset();
+    await loadHistoryForStudent(studentId);
   });
 
   checkAccess();
