@@ -314,7 +314,7 @@
           const path = schoolId + "/logo_" + Date.now() + "_" + file.name;
           const { error: uploadError } = await client.storage
             .from("school-logos")
-            .upload(path, file, { upsert: true });
+            .upload(path, file);
 
           if (uploadError) {
             alert("Upload failed: " + uploadError.message);
