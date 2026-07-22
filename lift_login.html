@@ -89,6 +89,11 @@
       return;
     }
 
+    if (data.role === "school_admin") {
+      window.location.href = "lift_admin.html";
+      return;
+    }
+
     // Any other/unrecognized role: fall back to the basic confirmation screen.
     document.getElementById("info-name").textContent = data.name;
     document.getElementById("info-email").textContent = data.email;
