@@ -111,10 +111,11 @@
 
               <div style="display:grid; grid-template-columns: 1fr 1fr; gap:14px;">
                 <div>
-                  <label for="school-status">Active/Inactive status</label>
+                  <label for="school-status">Status</label>
                   <select id="school-status">
                     <option value="active">Active</option>
-                    <option value="inactive">Inactive</option>
+                    <option value="pending">Pending</option>
+                    <option value="suspended">Suspended</option>
                   </select>
                 </div>
                 <div>
@@ -528,6 +529,8 @@
 
   const ACCREDITATION_LABELS = { accredited: "Accredited", in_progress: "Accreditation in progress", not_accredited: "Not accredited" };
   const MEMBERSHIP_LABELS = { active: "Active member", pending: "Pending", inactive: "Inactive / lapsed" };
+  const STATUS_PILL_CLASS = { active: "status-approved", pending: "status-pending_review", suspended: "status-revisions_requested" };
+  const STATUS_LABEL = { active: "Active", pending: "Pending", suspended: "Suspended" };
 
   async function loadSchools() {
     const { data, error } = await client
@@ -550,8 +553,8 @@
           const logoImg = s.logo_url
             ? '<img src="' + s.logo_url + '" alt="" style="width:26px;height:26px;border-radius:50%;object-fit:cover;margin-right:8px;vertical-align:middle;">'
             : "";
-          const statusPill = '<span class="status-pill ' + (s.status === "inactive" ? "status-revisions_requested" : "status-approved") + '">' +
-            (s.status === "inactive" ? "Inactive" : "Active") + "</span>";
+          const statusPill = '<span class="status-pill ' + (STATUS_PILL_CLASS[s.status] || "status-approved") + '">' +
+            (STATUS_LABEL[s.status] || "Active") + "</span>";
           const accreditationPill = s.accreditation_status
             ? '<span class="status-pill status-pending_review">' + (ACCREDITATION_LABELS[s.accreditation_status] || s.accreditation_status) + "</span>"
             : "";
