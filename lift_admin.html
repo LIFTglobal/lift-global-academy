@@ -134,7 +134,7 @@
       <!-- ---------- Students ---------- -->
       <section class="fade-in" id="section-students" data-section-panel="students" style="display:none;">
         <div class="panel" style="margin-bottom:20px;">
-          <h3>Add a student</h3>
+          <h3 id="student-form-title">Add a student</h3>
           <form id="student-form">
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:14px;">
               <div>
@@ -181,16 +181,22 @@
               <div>
                 <label for="student-gender">Gender</label>
                 <select id="student-gender">
-                  <option value="">Prefer not to say</option>
                   <option value="Male">Male</option>
                   <option value="Female">Female</option>
-                  <option value="Other">Other</option>
                 </select>
               </div>
             </div>
 
-            <label for="student-parent">Parent/guardian name</label>
-            <input type="text" id="student-parent" placeholder="e.g. John &amp; Jane Smith">
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:14px;">
+              <div>
+                <label for="student-parent">Parent/guardian name</label>
+                <input type="text" id="student-parent" placeholder="e.g. John &amp; Jane Smith">
+              </div>
+              <div>
+                <label for="student-parent-phone">Parent/guardian phone</label>
+                <input type="tel" id="student-parent-phone" placeholder="e.g. (555) 123-4567">
+              </div>
+            </div>
 
             <label for="student-address">Street address</label>
             <input type="text" id="student-address" placeholder="e.g. 160 Central Park South">
@@ -210,11 +216,22 @@
               </div>
             </div>
 
-            <button type="submit" style="margin-top:16px;">Add student</button>
+            <div style="display:flex; gap:10px; margin-top:16px;">
+              <button type="submit" id="student-submit-btn">Add student</button>
+              <button type="button" class="secondary" id="student-cancel-edit-btn" style="display:none;">Cancel</button>
+            </div>
           </form>
           <div class="msg" id="student-msg"></div>
         </div>
-        <div class="panel panel--list" id="student-list"></div>
+        <div class="panel panel--list">
+          <div style="display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid var(--slate-100); flex-wrap:wrap;">
+            <label for="student-school-filter" style="margin:0; font-size:12.5px; white-space:nowrap;">Filter by school</label>
+            <select id="student-school-filter" style="max-width:280px;">
+              <option value="">All schools</option>
+            </select>
+          </div>
+          <div id="student-list"></div>
+        </div>
       </section>
 
       <!-- ---------- Student school history ---------- -->
@@ -486,6 +503,11 @@
     const studentSelect = document.getElementById("student-school");
     teacherSelect.innerHTML = schoolOptions || '<option value="">Add a school first</option>';
     studentSelect.innerHTML = schoolOptions || '<option value="">Add a school first</option>';
+
+    const filterSelect = document.getElementById("student-school-filter");
+    const prevFilterVal = filterSelect.value;
+    filterSelect.innerHTML = '<option value="">All schools</option>' + schoolOptions;
+    filterSelect.value = prevFilterVal;
   }
 
   document.getElementById("school-form").addEventListener("submit", async (e) => {
@@ -579,10 +601,12 @@
   });
 
   // ---------- Students ----------
+  let editingStudentId = null;
+
   async function loadStudents() {
     const { data, error } = await client
       .from("students")
-      .select("id, first_name, last_name, grade_level, partner_school_id")
+      .select("id, first_name, last_name, grade_level, partner_school_id, date_of_birth, gender, parent_guardian_name, parent_phone, address_line, city, state, zip")
       .order("created_at", { ascending: false });
 
     const listEl = document.getElementById("student-list");
@@ -594,14 +618,7 @@
     cachedStudents = data || [];
     document.getElementById("stat-students").textContent = cachedStudents.length;
 
-    listEl.innerHTML = cachedStudents.length
-      ? cachedStudents.map(s => {
-          const school = cachedSchools.find(sc => sc.id === s.partner_school_id);
-          return '<div class="list-item"><span>' + s.first_name + " " + s.last_name +
-                 " (Grade " + s.grade_level + ')</span><span class="meta">' +
-                 (school ? school.name : "") + "</span></div>";
-        }).join("")
-      : '<div class="empty-note">No students added yet.</div>';
+    renderStudentList();
 
     const historySelect = document.getElementById("history-student-select");
     const studentOptions = cachedStudents.map(s =>
@@ -609,6 +626,69 @@
     ).join("");
     historySelect.innerHTML = '<option value="">Choose a student...</option>' + studentOptions;
   }
+
+  function renderStudentList() {
+    const listEl = document.getElementById("student-list");
+    const filterVal = document.getElementById("student-school-filter").value;
+    const filtered = filterVal
+      ? cachedStudents.filter(s => s.partner_school_id === filterVal)
+      : cachedStudents;
+
+    listEl.innerHTML = filtered.length
+      ? filtered.map(s => {
+          const school = cachedSchools.find(sc => sc.id === s.partner_school_id);
+          return '<div class="list-item" style="align-items:center;">' +
+            '<span>' + s.first_name + " " + s.last_name + " (Grade " + s.grade_level + ")</span>" +
+            '<span style="display:flex; align-items:center; gap:10px;">' +
+              '<span class="meta">' + (school ? school.name : "") + "</span>" +
+              '<button type="button" class="secondary student-edit-btn" data-id="' + s.id + '" style="padding:6px 10px; font-size:12px;">Edit</button>' +
+            "</span>" +
+          "</div>";
+        }).join("")
+      : '<div class="empty-note">' + (filterVal ? "No students at this school." : "No students added yet.") + "</div>";
+
+    document.querySelectorAll(".student-edit-btn").forEach(btn => {
+      btn.addEventListener("click", () => openEditStudent(btn.dataset.id));
+    });
+  }
+
+  document.getElementById("student-school-filter").addEventListener("change", renderStudentList);
+
+  function openEditStudent(id) {
+    const s = cachedStudents.find(st => st.id === id);
+    if (!s) return;
+    editingStudentId = id;
+
+    document.getElementById("student-school").value = s.partner_school_id || "";
+    document.getElementById("student-grade").value = s.grade_level;
+    document.getElementById("student-first").value = s.first_name || "";
+    document.getElementById("student-last").value = s.last_name || "";
+    document.getElementById("student-dob").value = s.date_of_birth || "";
+    document.getElementById("student-gender").value = s.gender || "Male";
+    document.getElementById("student-parent").value = s.parent_guardian_name || "";
+    document.getElementById("student-parent-phone").value = s.parent_phone || "";
+    document.getElementById("student-address").value = s.address_line || "";
+    document.getElementById("student-city").value = s.city || "";
+    document.getElementById("student-state").value = s.state || "";
+    document.getElementById("student-zip").value = s.zip || "";
+
+    document.getElementById("student-form-title").textContent = "Edit student";
+    document.getElementById("student-submit-btn").textContent = "Save changes";
+    document.getElementById("student-cancel-edit-btn").style.display = "inline-flex";
+    clearMsg(document.getElementById("student-msg"));
+
+    document.getElementById("student-form").scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function exitStudentEditMode() {
+    editingStudentId = null;
+    document.getElementById("student-form").reset();
+    document.getElementById("student-form-title").textContent = "Add a student";
+    document.getElementById("student-submit-btn").textContent = "Add student";
+    document.getElementById("student-cancel-edit-btn").style.display = "none";
+  }
+
+  document.getElementById("student-cancel-edit-btn").addEventListener("click", exitStudentEditMode);
 
   document.getElementById("student-form").addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -622,15 +702,30 @@
     const date_of_birth = document.getElementById("student-dob").value || null;
     const gender = document.getElementById("student-gender").value || null;
     const parent_guardian_name = document.getElementById("student-parent").value.trim() || null;
+    const parent_phone = document.getElementById("student-parent-phone").value.trim() || null;
     const address_line = document.getElementById("student-address").value.trim() || null;
     const city = document.getElementById("student-city").value.trim() || null;
     const state = document.getElementById("student-state").value.trim() || null;
     const zip = document.getElementById("student-zip").value.trim() || null;
 
-    const { error } = await client.from("students").insert({
+    const payload = {
       partner_school_id, first_name, last_name, grade_level,
-      date_of_birth, gender, parent_guardian_name, address_line, city, state, zip,
-    });
+      date_of_birth, gender, parent_guardian_name, parent_phone, address_line, city, state, zip,
+    };
+
+    if (editingStudentId) {
+      const { error } = await client.from("students").update(payload).eq("id", editingStudentId);
+      if (error) {
+        showMsg(msgEl, error.message, "error");
+        return;
+      }
+      showMsg(msgEl, "Student updated.", "success");
+      exitStudentEditMode();
+      await loadStudents();
+      return;
+    }
+
+    const { error } = await client.from("students").insert(payload);
 
     if (error) {
       showMsg(msgEl, error.message, "error");
