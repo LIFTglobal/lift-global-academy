@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LIFT Global Academy — Billing</title>
+<link rel="stylesheet" href="lift-style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="page">
+
+<div class="wrap" id="gate-wrap">
+  <div class="card gate" id="gate">
+    <div class="spinner"></div>
+    Checking your session...
+  </div>
+</div>
+
+<div id="app-wrap" style="display:none;">
+
+  <div class="navbar">
+    <div class="navbar-inner">
+      <a class="navbar-brand" href="lift_admin.html">
+        <img class="navbar-logo" src="lift-logo.png" alt="LIFT Global Academy logo">
+        <div>
+          <div class="navbar-title">Billing</div>
+          <div class="navbar-subtitle">Signed in as <span id="who-am-i"></span></div>
+        </div>
+      </a>
+      <div class="navbar-actions">
+        <a class="navbar-back" href="lift_admin.html">&larr; Back to admin</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap">
+
+    <div class="card">
+      <h2>Invoices</h2>
+      <div class="hint" style="margin-top:0; margin-bottom:14px;" id="billing-hint"></div>
+
+      <div id="invoice-form-wrap" style="display:none;">
+        <h3>Create an invoice</h3>
+        <form id="invoice-form">
+          <label for="invoice-school">Partner school</label>
+          <select id="invoice-school" required></select>
+          <label for="invoice-description">Description</label>
+          <input type="text" id="invoice-description" placeholder="e.g. Fall 2026 evaluation fee (12 students)" required>
+          <label for="invoice-amount">Amount (USD)</label>
+          <input type="number" id="invoice-amount" min="0.01" step="0.01" placeholder="e.g. 450.00" required>
+          <button type="submit">Create invoice</button>
+        </form>
+        <div class="msg" id="invoice-msg"></div>
+      </div>
+
+      <div id="invoice-list" style="margin-top:18px;"></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  const SUPABASE_URL = "https://ojmqlvtyygvethwrdqon.supabase.co";
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9qbXFsdnR5eWd2ZXRod3JkcW9uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0MzEyMTQsImV4cCI6MjA5ODAwNzIxNH0.IWLrhtb4w_dq-_pjW1wzRAX6-0qI4Hmwtp5p_cSSVWM";
+
+  const { createClient } = supabase;
+  const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  // Crude first-pass payment link — swap for a real Stripe/PayPal checkout integration later.
+  const PAYPAL_ME_LINK = "https://paypal.me/ROCKLINUSA";
+
+  function showMsg(el, text, type) {
+    el.textContent = text;
+    el.className = "msg " + type;
+    el.style.display = "block";
+  }
+
+  function clearMsg(el) {
+    el.style.display = "none";
+  }
+
+  let myAccount = null;
+  let cachedSchools = [];
+
+  // ---------- Gate: lift_evaluator (all schools) or school_admin (own school only) ----------
+  async function checkAccess() {
+    const { data: sessionData } = await client.auth.getSession();
+    if (!sessionData.session) {
+      document.getElementById("gate").innerHTML =
+        "You're not signed in. Sign in through the LIFT login page first, then come back to this page.";
+      return;
+    }
+
+    const userId = sessionData.session.user.id;
+    const { data: account, error } = await client
+      .from("accounts")
+      .select("id, name, role, partner_school_id")
+      .eq("id", userId)
+      .single();
+
+    if (error || !account) {
+      document.getElementById("gate").innerHTML =
+        "Signed in, but no matching accounts row was found for this user.";
+      return;
+    }
+
+    if (account.role !== "school_admin" && account.role !== "lift_evaluator") {
+      document.getElementById("gate").innerHTML =
+        "Signed in as " + account.name + ", but this account's role (" + account.role +
+        ") doesn't have access to billing.";
+      return;
+    }
+
+    myAccount = account;
+    document.getElementById("who-am-i").textContent = account.name + " (" + account.role + ")";
+    document.getElementById("gate-wrap").style.display = "none";
+    document.getElementById("app-wrap").style.display = "block";
+
+    await loadSchools();
+    await loadInvoices();
+  }
+
+  // ---------- Schools (only what's needed for the invoice form + list labels) ----------
+  async function loadSchools() {
+    const { data, error } = await client
+      .from("partner_schools")
+      .select("id, name")
+      .order("name");
+
+    if (error) return;
+    cachedSchools = data || [];
+  }
+
+  // ---------- Billing ----------
+  function statusPillClass(status) {
+    return { unpaid: "status-pending_review", paid: "status-approved", void: "status-revisions_requested" }[status] || "";
+  }
+
+  function formatAmount(amount) {
+    return "$" + Number(amount).toFixed(2);
+  }
+
+  async function loadInvoices() {
+    const isEvaluator = myAccount.role === "lift_evaluator";
+    const hintEl = document.getElementById("billing-hint");
+    const formWrap = document.getElementById("invoice-form-wrap");
+
+    if (isEvaluator) {
+      hintEl.textContent = "Create an invoice for a school, then mark it paid or void once you've confirmed payment (this is a manual, crude first pass — no automatic payment confirmation yet).";
+      formWrap.style.display = "block";
+      const schoolOptions = cachedSchools.map(s => '<option value="' + s.id + '">' + s.name + "</option>").join("");
+      document.getElementById("invoice-school").innerHTML = schoolOptions || '<option value="">Add a school first</option>';
+    } else {
+      hintEl.textContent = "Invoices from LIFT for your school. Pay unpaid invoices via PayPal, then LIFT will mark it as received.";
+      formWrap.style.display = "none";
+    }
+
+    const { data, error } = await client
+      .from("invoices")
+      .select("id, description, amount, status, created_at, paid_at, partner_school_id")
+      .order("created_at", { ascending: false });
+
+    const listEl = document.getElementById("invoice-list");
+    if (error) {
+      listEl.innerHTML = '<div class="empty-note">Could not load invoices: ' + error.message + "</div>";
+      return;
+    }
+
+    if (!data || data.length === 0) {
+      listEl.innerHTML = '<div class="empty-note">No invoices yet.</div>';
+      return;
+    }
+
+    listEl.innerHTML = data.map(inv => {
+      const school = cachedSchools.find(s => s.id === inv.partner_school_id);
+      const schoolName = school ? school.name : "";
+      let actionHtml = "";
+
+      if (inv.status === "unpaid") {
+        if (isEvaluator) {
+          actionHtml =
+            '<button type="button" class="secondary invoice-mark-paid-btn" data-id="' + inv.id + '" style="padding:6px 10px; font-size:12px;">Mark paid</button> ' +
+            '<button type="button" class="back invoice-void-btn" data-id="' + inv.id + '" style="padding:6px 10px; font-size:12px;">Void</button>';
+        } else {
+          const payUrl = PAYPAL_ME_LINK + "/" + Number(inv.amount).toFixed(2);
+          actionHtml = '<a href="' + payUrl + '" target="_blank" rel="noopener"><button type="button">Pay ' + formatAmount(inv.amount) + ' via PayPal</button></a>';
+        }
+      } else if (inv.status === "paid" && inv.paid_at) {
+        actionHtml = '<span class="meta">Paid ' + new Date(inv.paid_at).toLocaleDateString() + "</span>";
+      }
+
+      return '<div class="list-item">' +
+        '<div><div style="font-weight:600;">' + inv.description + "</div>" +
+        '<div class="meta">' + (isEvaluator ? schoolName + " &middot; " : "") + formatAmount(inv.amount) +
+        ' &middot; ' + new Date(inv.created_at).toLocaleDateString() + "</div></div>" +
+        '<div style="display:flex; align-items:center; gap:8px;">' +
+        '<span class="status-pill ' + statusPillClass(inv.status) + '">' + inv.status + "</span>" +
+        actionHtml +
+        "</div></div>";
+    }).join("");
+
+    document.querySelectorAll(".invoice-mark-paid-btn").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const { error: updateError } = await client
+          .from("invoices")
+          .update({ status: "paid", paid_at: new Date().toISOString() })
+          .eq("id", btn.dataset.id);
+        if (updateError) {
+          alert("Could not mark paid: " + updateError.message);
+          return;
+        }
+        await loadInvoices();
+      });
+    });
+
+    document.querySelectorAll(".invoice-void-btn").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        if (!confirm("Void this invoice?")) return;
+        const { error: updateError } = await client
+          .from("invoices")
+          .update({ status: "void" })
+          .eq("id", btn.dataset.id);
+        if (updateError) {
+          alert("Could not void: " + updateError.message);
+          return;
+        }
+        await loadInvoices();
+      });
+    });
+  }
+
+  document.getElementById("invoice-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const msgEl = document.getElementById("invoice-msg");
+    clearMsg(msgEl);
+
+    const partner_school_id = document.getElementById("invoice-school").value;
+    const description = document.getElementById("invoice-description").value.trim();
+    const amount = parseFloat(document.getElementById("invoice-amount").value);
+
+    if (!partner_school_id) {
+      showMsg(msgEl, "Choose a school first.", "error");
+      return;
+    }
+
+    const { error } = await client.from("invoices").insert({
+      partner_school_id, description, amount,
+      created_by: myAccount.id,
+    });
+
+    if (error) {
+      showMsg(msgEl, error.message, "error");
+      return;
+    }
+
+    showMsg(msgEl, "Invoice created.", "success");
+    document.getElementById("invoice-form").reset();
+    await loadInvoices();
+  });
+
+  checkAccess();
+</script>
+
+</body>
+</html>
