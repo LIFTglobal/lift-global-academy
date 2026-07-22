@@ -26,6 +26,25 @@
     <input type="password" id="password" required autocomplete="current-password">
     <button type="submit" id="login-button" style="width:100%; margin-top:18px;">Sign in</button>
   </form>
+  <div style="text-align:center; margin-top:14px;">
+    <a href="#" id="forgot-password-link" style="font-size:14px;">Forgot password?</a>
+  </div>
+</div>
+
+<div class="card" id="forgot-card" style="display:none; max-width:380px; width:100%;">
+  <img class="login-logo" src="lift-logo.png" alt="LIFT Global Academy logo">
+  <h1 style="text-align:center;">Reset your password</h1>
+  <div class="subtitle" style="text-align:center; margin-bottom:28px;">Enter your email and we'll send you a reset link.</div>
+  <div class="error" id="forgot-error"></div>
+  <div class="msg" id="forgot-success" style="display:none;"></div>
+  <form id="forgot-form">
+    <label for="forgot-email">Email</label>
+    <input type="email" id="forgot-email" required autocomplete="email">
+    <button type="submit" id="forgot-button" style="width:100%; margin-top:18px;">Send reset link</button>
+  </form>
+  <div style="text-align:center; margin-top:14px;">
+    <a href="#" id="back-to-login-link" style="font-size:14px;">&larr; Back to sign in</a>
+  </div>
 </div>
 
 <div class="card success-screen" id="success-card" style="display:none; max-width:380px; width:100%; text-align:center;">
@@ -47,10 +66,15 @@
   const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   const loginCard = document.getElementById("login-card");
+  const forgotCard = document.getElementById("forgot-card");
   const successCard = document.getElementById("success-card");
   const loginForm = document.getElementById("login-form");
   const loginButton = document.getElementById("login-button");
   const loginError = document.getElementById("login-error");
+  const forgotForm = document.getElementById("forgot-form");
+  const forgotButton = document.getElementById("forgot-button");
+  const forgotError = document.getElementById("forgot-error");
+  const forgotSuccess = document.getElementById("forgot-success");
 
   function showError(message) {
     loginError.textContent = message;
@@ -122,6 +146,49 @@
     }
 
     await showLoggedInScreen(data.user.id);
+  });
+
+  document.getElementById("forgot-password-link").addEventListener("click", (e) => {
+    e.preventDefault();
+    loginCard.style.display = "none";
+    forgotCard.style.display = "block";
+    forgotError.style.display = "none";
+    forgotSuccess.style.display = "none";
+    document.getElementById("forgot-email").value = document.getElementById("email").value;
+  });
+
+  document.getElementById("back-to-login-link").addEventListener("click", (e) => {
+    e.preventDefault();
+    forgotCard.style.display = "none";
+    loginCard.style.display = "block";
+  });
+
+  forgotForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    forgotError.style.display = "none";
+    forgotSuccess.style.display = "none";
+    forgotButton.disabled = true;
+    forgotButton.textContent = "Sending...";
+
+    const email = document.getElementById("forgot-email").value.trim();
+
+    const { error } = await client.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.origin + "/lift_reset_password.html",
+    });
+
+    forgotButton.disabled = false;
+    forgotButton.textContent = "Send reset link";
+
+    if (error) {
+      forgotError.textContent = error.message;
+      forgotError.style.display = "block";
+      return;
+    }
+
+    forgotSuccess.textContent = "If that email has an account, a reset link is on its way. Check your inbox.";
+    forgotSuccess.className = "msg success";
+    forgotSuccess.style.display = "block";
+    forgotForm.reset();
   });
 
   document.getElementById("logout-button").addEventListener("click", async () => {
