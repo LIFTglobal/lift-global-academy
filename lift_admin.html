@@ -17,196 +17,275 @@
 </div>
 
 <div id="app-wrap" style="display:none;">
+  <div class="workspace">
 
-  <div class="navbar">
-    <div class="navbar-inner">
-      <a class="navbar-brand" href="lift_home_evaluator.html">
-        <img class="navbar-logo" src="lift-logo.png" alt="LIFT Global Academy logo">
-        <div>
-          <div class="navbar-title">School administrator dashboard</div>
-          <div class="navbar-subtitle">Signed in as <span id="who-am-i"></span></div>
+    <div class="sidebar" id="sidebar">
+      <a class="sidebar-brand" href="lift_admin.html">
+        <img class="sidebar-logo" src="lift-logo.png" alt="LIFT Global Academy logo">
+        <div class="sidebar-brand-text">
+          <div class="sidebar-brand-title">LIFT Global</div>
+          <div class="sidebar-brand-subtitle">Admin workspace</div>
         </div>
       </a>
-      <div class="navbar-actions">
-        <a class="navbar-back" href="lift_billing.html">Billing &rarr;</a>
-        <a class="navbar-back" href="lift_home_evaluator.html">&larr; Back to home</a>
+
+      <button type="button" class="sidebar-nav-item active" data-section="schools">
+        <span class="sidebar-nav-dot"></span><span class="sidebar-nav-label">Schools</span>
+      </button>
+      <button type="button" class="sidebar-nav-item" data-section="teachers">
+        <span class="sidebar-nav-dot"></span><span class="sidebar-nav-label">Teachers</span>
+      </button>
+      <button type="button" class="sidebar-nav-item" data-section="students">
+        <span class="sidebar-nav-dot"></span><span class="sidebar-nav-label">Students</span>
+      </button>
+      <button type="button" class="sidebar-nav-item" data-section="history">
+        <span class="sidebar-nav-dot"></span><span class="sidebar-nav-label">School history</span>
+      </button>
+
+      <div class="sidebar-spacer"></div>
+
+      <button type="button" class="sidebar-collapse-toggle" id="sidebar-collapse-btn">
+        <span class="chevron"></span><span>Collapse</span>
+      </button>
+
+      <div class="sidebar-footer">
+        Signed in as
+        <strong id="who-am-i"></strong>
       </div>
     </div>
-  </div>
 
-  <div class="wrap">
+    <div class="workspace-main">
+      <div class="workspace-header">
+        <div>
+          <div class="workspace-header-title" id="section-title">Schools</div>
+          <div class="workspace-header-subtitle" id="section-subtitle">Manage partner schools and their logos</div>
+        </div>
+        <div class="workspace-header-actions">
+          <a class="header-link" href="lift_billing.html">Billing</a>
+          <a class="header-link" href="lift_home_evaluator.html">Home</a>
+          <button type="button" class="header-link" id="signout-btn">Sign out</button>
+        </div>
+      </div>
 
-    <div class="card">
-      <h2>Add a partner school</h2>
-      <form id="school-form">
-        <label for="school-name">School name</label>
-        <input type="text" id="school-name" placeholder="e.g. Cedar Hill Learning Center" required>
-        <label for="school-type">Partner type</label>
-        <select id="school-type">
-          <option value="learning_center_microschool">Learning center / microschool</option>
-          <option value="international_school">Unaccredited international school</option>
-        </select>
-        <button type="submit">Add school</button>
-      </form>
-      <div class="msg" id="school-msg"></div>
-      <div id="school-list" style="margin-top:18px;"></div>
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="stat-card-label">Partner schools</div>
+          <div class="stat-card-value" id="stat-schools">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-label">Teachers</div>
+          <div class="stat-card-value" id="stat-teachers">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-label">Students</div>
+          <div class="stat-card-value" id="stat-students">0</div>
+        </div>
+      </div>
+
+      <!-- ---------- Schools ---------- -->
+      <section class="fade-in" id="section-schools" data-section-panel="schools">
+        <div class="grid-2">
+          <div class="panel">
+            <h3>Add a partner school</h3>
+            <form id="school-form">
+              <label for="school-name">School name</label>
+              <input type="text" id="school-name" placeholder="e.g. Cedar Hill Learning Center" required>
+              <label for="school-type">Partner type</label>
+              <select id="school-type">
+                <option value="learning_center_microschool">Learning center / microschool</option>
+                <option value="international_school">Unaccredited international school</option>
+              </select>
+              <button type="submit">Add school</button>
+            </form>
+            <div class="msg" id="school-msg"></div>
+          </div>
+          <div class="panel panel--list" id="school-list"></div>
+        </div>
+      </section>
+
+      <!-- ---------- Teachers ---------- -->
+      <section class="fade-in" id="section-teachers" data-section-panel="teachers" style="display:none;">
+        <div class="grid-2">
+          <div class="panel">
+            <h3>Add a teacher</h3>
+            <form id="teacher-form">
+              <label for="teacher-school">Partner school</label>
+              <select id="teacher-school" required></select>
+              <label for="teacher-name">Teacher name</label>
+              <input type="text" id="teacher-name" placeholder="e.g. J. Alavi" required>
+              <label for="teacher-email">Teacher email</label>
+              <input type="email" id="teacher-email" placeholder="teacher@example.com" required>
+              <label for="teacher-password">Temporary password</label>
+              <input type="text" id="teacher-password" placeholder="Give them something to start with" required>
+              <button type="submit">Add teacher</button>
+            </form>
+            <div class="msg" id="teacher-msg"></div>
+          </div>
+          <div class="panel panel--list" id="teacher-list"></div>
+        </div>
+      </section>
+
+      <!-- ---------- Students ---------- -->
+      <section class="fade-in" id="section-students" data-section-panel="students" style="display:none;">
+        <div class="panel" style="margin-bottom:20px;">
+          <h3>Add a student</h3>
+          <form id="student-form">
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:14px;">
+              <div>
+                <label for="student-school">Partner school</label>
+                <select id="student-school" required></select>
+              </div>
+              <div>
+                <label for="student-grade">Grade level</label>
+                <select id="student-grade" required>
+                  <option value="-1">Pre-K</option>
+                  <option value="0">Kindergarten</option>
+                  <option value="1">Grade 1</option>
+                  <option value="2">Grade 2</option>
+                  <option value="3">Grade 3</option>
+                  <option value="4">Grade 4</option>
+                  <option value="5">Grade 5</option>
+                  <option value="6">Grade 6</option>
+                  <option value="7">Grade 7</option>
+                  <option value="8">Grade 8</option>
+                  <option value="9">Grade 9</option>
+                  <option value="10">Grade 10</option>
+                  <option value="11">Grade 11</option>
+                  <option value="12">Grade 12</option>
+                </select>
+              </div>
+            </div>
+
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:14px;">
+              <div>
+                <label for="student-first">First name</label>
+                <input type="text" id="student-first" required>
+              </div>
+              <div>
+                <label for="student-last">Last name</label>
+                <input type="text" id="student-last" required>
+              </div>
+            </div>
+
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:14px;">
+              <div>
+                <label for="student-dob">Date of birth</label>
+                <input type="date" id="student-dob">
+              </div>
+              <div>
+                <label for="student-gender">Gender</label>
+                <select id="student-gender">
+                  <option value="">Prefer not to say</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+            </div>
+
+            <label for="student-parent">Parent/guardian name</label>
+            <input type="text" id="student-parent" placeholder="e.g. John &amp; Jane Smith">
+
+            <label for="student-address">Street address</label>
+            <input type="text" id="student-address" placeholder="e.g. 160 Central Park South">
+
+            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap:14px;">
+              <div>
+                <label for="student-city">City</label>
+                <input type="text" id="student-city">
+              </div>
+              <div>
+                <label for="student-state">State</label>
+                <input type="text" id="student-state">
+              </div>
+              <div>
+                <label for="student-zip">ZIP</label>
+                <input type="text" id="student-zip">
+              </div>
+            </div>
+
+            <button type="submit" style="margin-top:16px;">Add student</button>
+          </form>
+          <div class="msg" id="student-msg"></div>
+        </div>
+        <div class="panel panel--list" id="student-list"></div>
+      </section>
+
+      <!-- ---------- Student school history ---------- -->
+      <section class="fade-in" id="section-history" data-section-panel="history" style="display:none;">
+        <div class="panel">
+          <div class="hint" style="margin-top:0; margin-bottom:14px;">Used on transcripts to list every school a student has attended — add one row per school year.</div>
+
+          <label for="history-student-select">Student</label>
+          <select id="history-student-select"></select>
+          <div id="history-list" style="margin:16px 0;"></div>
+
+          <h3>Add a school history entry</h3>
+          <form id="history-form">
+            <label for="hist-school-name">School name</label>
+            <input type="text" id="hist-school-name" required placeholder="e.g. ABC School">
+
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+              <div>
+                <label for="hist-teacher">Teacher name</label>
+                <input type="text" id="hist-teacher">
+              </div>
+              <div>
+                <label for="hist-grade-label">Grade level</label>
+                <input type="text" id="hist-grade-label" placeholder="e.g. 1st, 10th">
+              </div>
+            </div>
+
+            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap:10px;">
+              <div>
+                <label for="hist-days-present">Days present</label>
+                <input type="number" id="hist-days-present" min="0">
+              </div>
+              <div>
+                <label for="hist-days-absent">Days absent</label>
+                <input type="number" id="hist-days-absent" min="0">
+              </div>
+              <div>
+                <label for="hist-promotion">Promotion status</label>
+                <input type="text" id="hist-promotion" placeholder="e.g. Promoted">
+              </div>
+            </div>
+
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+              <div>
+                <label for="hist-entered">Entered</label>
+                <input type="date" id="hist-entered">
+              </div>
+              <div>
+                <label for="hist-exited">Exited</label>
+                <input type="date" id="hist-exited">
+              </div>
+            </div>
+
+            <label for="hist-address">School address</label>
+            <input type="text" id="hist-address">
+
+            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap:10px;">
+              <div>
+                <label for="hist-city">City</label>
+                <input type="text" id="hist-city">
+              </div>
+              <div>
+                <label for="hist-state">State</label>
+                <input type="text" id="hist-state">
+              </div>
+              <div>
+                <label for="hist-zip">ZIP</label>
+                <input type="text" id="hist-zip">
+              </div>
+            </div>
+
+            <button type="submit" style="margin-top:16px;">Add entry</button>
+          </form>
+          <div class="msg" id="history-msg"></div>
+        </div>
+      </section>
+
     </div>
-
-    <div class="card">
-      <h2>Add a teacher</h2>
-      <form id="teacher-form">
-        <label for="teacher-school">Partner school</label>
-        <select id="teacher-school" required></select>
-        <label for="teacher-name">Teacher name</label>
-        <input type="text" id="teacher-name" placeholder="e.g. J. Alavi" required>
-        <label for="teacher-email">Teacher email</label>
-        <input type="email" id="teacher-email" placeholder="teacher@example.com" required>
-        <label for="teacher-password">Temporary password</label>
-        <input type="text" id="teacher-password" placeholder="Give them something to start with" required>
-        <button type="submit">Add teacher</button>
-      </form>
-      <div class="msg" id="teacher-msg"></div>
-      <div id="teacher-list" style="margin-top:18px;"></div>
-    </div>
-
-    <div class="card">
-      <h2>Add a student</h2>
-      <form id="student-form">
-        <label for="student-school">Partner school</label>
-        <select id="student-school" required></select>
-        <label for="student-first">First name</label>
-        <input type="text" id="student-first" required>
-        <label for="student-last">Last name</label>
-        <input type="text" id="student-last" required>
-        <label for="student-grade">Grade level</label>
-        <select id="student-grade" required>
-          <option value="-1">Pre-K</option>
-          <option value="0">Kindergarten</option>
-          <option value="1">Grade 1</option>
-          <option value="2">Grade 2</option>
-          <option value="3">Grade 3</option>
-          <option value="4">Grade 4</option>
-          <option value="5">Grade 5</option>
-          <option value="6">Grade 6</option>
-          <option value="7">Grade 7</option>
-          <option value="8">Grade 8</option>
-          <option value="9">Grade 9</option>
-          <option value="10">Grade 10</option>
-          <option value="11">Grade 11</option>
-          <option value="12">Grade 12</option>
-        </select>
-
-        <label for="student-dob">Date of birth</label>
-        <input type="date" id="student-dob">
-
-        <label for="student-gender">Gender</label>
-        <select id="student-gender">
-          <option value="">Prefer not to say</option>
-          <option value="Male">Male</option>
-          <option value="Female">Female</option>
-          <option value="Other">Other</option>
-        </select>
-
-        <label for="student-parent">Parent/guardian name</label>
-        <input type="text" id="student-parent" placeholder="e.g. John &amp; Jane Smith">
-
-        <label for="student-address">Street address</label>
-        <input type="text" id="student-address" placeholder="e.g. 160 Central Park South">
-
-        <div style="display:grid; grid-template-columns: 2fr 1fr 1fr; gap:10px;">
-          <div>
-            <label for="student-city">City</label>
-            <input type="text" id="student-city">
-          </div>
-          <div>
-            <label for="student-state">State</label>
-            <input type="text" id="student-state">
-          </div>
-          <div>
-            <label for="student-zip">ZIP</label>
-            <input type="text" id="student-zip">
-          </div>
-        </div>
-
-        <button type="submit">Add student</button>
-      </form>
-      <div class="msg" id="student-msg"></div>
-      <div id="student-list" style="margin-top:18px;"></div>
-    </div>
-
-    <div class="card">
-      <h2>Student school history</h2>
-      <div class="hint" style="margin-top:0; margin-bottom:14px;">Used on transcripts to list every school a student has attended — add one row per school year.</div>
-
-      <label for="history-student-select">Student</label>
-      <select id="history-student-select"></select>
-      <div id="history-list" style="margin:16px 0;"></div>
-
-      <h3>Add a school history entry</h3>
-      <form id="history-form">
-        <label for="hist-school-name">School name</label>
-        <input type="text" id="hist-school-name" required placeholder="e.g. ABC School">
-
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-          <div>
-            <label for="hist-teacher">Teacher name</label>
-            <input type="text" id="hist-teacher">
-          </div>
-          <div>
-            <label for="hist-grade-label">Grade level</label>
-            <input type="text" id="hist-grade-label" placeholder="e.g. 1st, 10th">
-          </div>
-        </div>
-
-        <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px;">
-          <div>
-            <label for="hist-days-present">Days present</label>
-            <input type="number" id="hist-days-present" min="0">
-          </div>
-          <div>
-            <label for="hist-days-absent">Days absent</label>
-            <input type="number" id="hist-days-absent" min="0">
-          </div>
-          <div>
-            <label for="hist-promotion">Promotion status</label>
-            <input type="text" id="hist-promotion" placeholder="e.g. Promoted">
-          </div>
-        </div>
-
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-          <div>
-            <label for="hist-entered">Entered</label>
-            <input type="date" id="hist-entered">
-          </div>
-          <div>
-            <label for="hist-exited">Exited</label>
-            <input type="date" id="hist-exited">
-          </div>
-        </div>
-
-        <label for="hist-address">School address</label>
-        <input type="text" id="hist-address">
-
-        <div style="display:grid; grid-template-columns: 2fr 1fr 1fr; gap:10px;">
-          <div>
-            <label for="hist-city">City</label>
-            <input type="text" id="hist-city">
-          </div>
-          <div>
-            <label for="hist-state">State</label>
-            <input type="text" id="hist-state">
-          </div>
-          <div>
-            <label for="hist-zip">ZIP</label>
-            <input type="text" id="hist-zip">
-          </div>
-        </div>
-
-        <button type="submit">Add entry</button>
-      </form>
-      <div class="msg" id="history-msg"></div>
-    </div>
-
   </div>
 </div>
 
@@ -230,7 +309,41 @@
 
   let cachedSchools = [];
   let cachedStudents = [];
+  let cachedTeacherCount = 0;
   let myAccount = null;
+
+  // ---------- Sidebar section switching ----------
+  const SECTION_META = {
+    schools: { title: "Schools", subtitle: "Manage partner schools and their logos" },
+    teachers: { title: "Teachers", subtitle: "Give teachers access to upload grades and portfolios" },
+    students: { title: "Students", subtitle: "Enrolled students across all partner schools" },
+    history: { title: "School history", subtitle: "Prior-school records used to build transcripts" },
+  };
+
+  function switchSection(section) {
+    document.querySelectorAll(".sidebar-nav-item").forEach(item => {
+      item.classList.toggle("active", item.dataset.section === section);
+    });
+    document.querySelectorAll("[data-section-panel]").forEach(panel => {
+      panel.style.display = panel.dataset.sectionPanel === section ? "block" : "none";
+    });
+    const meta = SECTION_META[section] || SECTION_META.schools;
+    document.getElementById("section-title").textContent = meta.title;
+    document.getElementById("section-subtitle").textContent = meta.subtitle;
+  }
+
+  document.querySelectorAll(".sidebar-nav-item").forEach(item => {
+    item.addEventListener("click", () => switchSection(item.dataset.section));
+  });
+
+  document.getElementById("sidebar-collapse-btn").addEventListener("click", () => {
+    document.getElementById("sidebar").classList.toggle("collapsed");
+  });
+
+  document.getElementById("signout-btn").addEventListener("click", async () => {
+    await client.auth.signOut();
+    window.location.href = "lift_login.html";
+  });
 
   // ---------- Gate: only allow school_admin accounts in ----------
   async function checkAccess() {
@@ -285,6 +398,7 @@
     }
 
     cachedSchools = data || [];
+    document.getElementById("stat-schools").textContent = cachedSchools.length;
 
     const listEl = document.getElementById("school-list");
     listEl.innerHTML = cachedSchools.length
@@ -388,6 +502,9 @@
       return;
     }
 
+    cachedTeacherCount = data.length;
+    document.getElementById("stat-teachers").textContent = cachedTeacherCount;
+
     listEl.innerHTML = data.length
       ? data.map(t => {
           const school = cachedSchools.find(s => s.id === t.partner_school_id);
@@ -455,6 +572,7 @@
     }
 
     cachedStudents = data || [];
+    document.getElementById("stat-students").textContent = cachedStudents.length;
 
     listEl.innerHTML = cachedStudents.length
       ? cachedStudents.map(s => {
