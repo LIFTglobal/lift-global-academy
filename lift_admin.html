@@ -41,6 +41,9 @@
       <button type="button" class="sidebar-nav-item" data-section="teachers">
         <span class="sidebar-nav-dot"></span><span class="sidebar-nav-label">Teachers</span>
       </button>
+      <button type="button" class="sidebar-nav-item" data-section="administrators">
+        <span class="sidebar-nav-dot"></span><span class="sidebar-nav-label">Administrators</span>
+      </button>
       <button type="button" class="sidebar-nav-item" data-section="students">
         <span class="sidebar-nav-dot"></span><span class="sidebar-nav-label">Students</span>
       </button>
@@ -83,6 +86,10 @@
           <div class="stat-card-value" id="stat-teachers">0</div>
         </div>
         <div class="stat-card">
+          <div class="stat-card-label">Administrators</div>
+          <div class="stat-card-value" id="stat-administrators">0</div>
+        </div>
+        <div class="stat-card">
           <div class="stat-card-label">Students</div>
           <div class="stat-card-value" id="stat-students">0</div>
         </div>
@@ -92,7 +99,7 @@
       <section class="fade-in" id="section-schools" data-section-panel="schools">
         <div class="grid-2">
           <div class="panel">
-            <h3>Add a partner school</h3>
+            <h3 id="school-form-title">Add a partner school</h3>
             <form id="school-form">
               <label for="school-name">School name</label>
               <input type="text" id="school-name" placeholder="e.g. Cedar Hill Learning Center" required>
@@ -101,7 +108,66 @@
                 <option value="learning_center_microschool">Learning center / microschool</option>
                 <option value="international_school">Unaccredited international school</option>
               </select>
-              <button type="submit">Add school</button>
+
+              <div style="display:grid; grid-template-columns: 1fr 1fr; gap:14px;">
+                <div>
+                  <label for="school-status">Active/Inactive status</label>
+                  <select id="school-status">
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="school-accreditation">Accreditation status</label>
+                  <select id="school-accreditation">
+                    <option value="">Not set</option>
+                    <option value="accredited">Accredited</option>
+                    <option value="in_progress">In progress</option>
+                    <option value="not_accredited">Not accredited</option>
+                  </select>
+                </div>
+              </div>
+
+              <label for="school-membership">LIFT membership status</label>
+              <select id="school-membership">
+                <option value="active">Active member</option>
+                <option value="pending">Pending</option>
+                <option value="inactive">Inactive / lapsed</option>
+              </select>
+
+              <label for="school-address">Street address</label>
+              <input type="text" id="school-address" placeholder="e.g. 160 Central Park South">
+
+              <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap:14px;">
+                <div>
+                  <label for="school-city">City</label>
+                  <input type="text" id="school-city">
+                </div>
+                <div>
+                  <label for="school-state">State</label>
+                  <input type="text" id="school-state">
+                </div>
+                <div>
+                  <label for="school-zip">ZIP</label>
+                  <input type="text" id="school-zip">
+                </div>
+              </div>
+
+              <div style="display:grid; grid-template-columns: 1fr 1fr; gap:14px;">
+                <div>
+                  <label for="school-color-primary">Brand primary color</label>
+                  <input type="color" id="school-color-primary" value="#16243a" style="height:42px; padding:4px; cursor:pointer;">
+                </div>
+                <div>
+                  <label for="school-color-secondary">Brand secondary color</label>
+                  <input type="color" id="school-color-secondary" value="#00b863" style="height:42px; padding:4px; cursor:pointer;">
+                </div>
+              </div>
+
+              <div style="display:flex; gap:10px; margin-top:16px;">
+                <button type="submit" id="school-submit-btn">Add school</button>
+                <button type="button" class="secondary" id="school-cancel-edit-btn" style="display:none;">Cancel</button>
+              </div>
             </form>
             <div class="msg" id="school-msg"></div>
           </div>
@@ -128,6 +194,38 @@
             <div class="msg" id="teacher-msg"></div>
           </div>
           <div class="panel panel--list" id="teacher-list"></div>
+        </div>
+      </section>
+
+      <!-- ---------- Administrators ---------- -->
+      <section class="fade-in" id="section-administrators" data-section-panel="administrators" style="display:none;">
+        <div class="grid-2">
+          <div class="panel">
+            <h3>Add a school administrator</h3>
+            <form id="admin-form">
+              <label for="admin-school">Partner school</label>
+              <select id="admin-school" required></select>
+              <label for="admin-name">Administrator name</label>
+              <input type="text" id="admin-name" placeholder="e.g. D. Marsh" required>
+              <label for="admin-email">Administrator email</label>
+              <input type="email" id="admin-email" placeholder="admin@example.com" required>
+              <label for="admin-phone">Administrator phone</label>
+              <input type="tel" id="admin-phone" placeholder="e.g. (555) 123-4567">
+              <label for="admin-password">Temporary password</label>
+              <input type="text" id="admin-password" placeholder="Give them something to start with" required>
+              <button type="submit">Add administrator</button>
+            </form>
+            <div class="msg" id="admin-msg"></div>
+          </div>
+          <div class="panel panel--list">
+            <div style="display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid var(--slate-100); flex-wrap:wrap;">
+              <label for="admin-school-filter" style="margin:0; font-size:12.5px; white-space:nowrap;">Filter by school</label>
+              <select id="admin-school-filter" style="max-width:280px;">
+                <option value="">All schools</option>
+              </select>
+            </div>
+            <div id="admin-list"></div>
+          </div>
         </div>
       </section>
 
@@ -317,6 +415,7 @@
   const SUPABASE_URL = "https://ojmqlvtyygvethwrdqon.supabase.co";
   const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9qbXFsdnR5eWd2ZXRod3JkcW9uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0MzEyMTQsImV4cCI6MjA5ODAwNzIxNH0.IWLrhtb4w_dq-_pjW1wzRAX6-0qI4Hmwtp5p_cSSVWM";
   const CREATE_TEACHER_FUNCTION_URL = "https://ojmqlvtyygvethwrdqon.supabase.co/functions/v1/create_teacher";
+  const CREATE_ACCOUNT_FUNCTION_URL = "https://ojmqlvtyygvethwrdqon.supabase.co/functions/v1/create_account";
 
   const { createClient } = supabase;
   const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -334,12 +433,14 @@
   let cachedSchools = [];
   let cachedStudents = [];
   let cachedTeacherCount = 0;
+  let cachedAdminCount = 0;
   let myAccount = null;
 
   // ---------- Sidebar section switching ----------
   const SECTION_META = {
     schools: { title: "Schools", subtitle: "Manage partner schools and their logos" },
     teachers: { title: "Teachers", subtitle: "Give teachers access to upload grades and portfolios" },
+    administrators: { title: "Administrators", subtitle: "School administrator accounts for each partner school" },
     students: { title: "Students", subtitle: "Enrolled students across all partner schools" },
     history: { title: "School history", subtitle: "Prior-school records used to build transcripts" },
   };
@@ -418,14 +519,20 @@
 
     await loadSchools();
     await loadTeachers();
+    await loadAdministrators();
     await loadStudents();
   }
 
   // ---------- Schools ----------
+  let editingSchoolId = null;
+
+  const ACCREDITATION_LABELS = { accredited: "Accredited", in_progress: "Accreditation in progress", not_accredited: "Not accredited" };
+  const MEMBERSHIP_LABELS = { active: "Active member", pending: "Pending", inactive: "Inactive / lapsed" };
+
   async function loadSchools() {
     const { data, error } = await client
       .from("partner_schools")
-      .select("id, name, partner_type, logo_url")
+      .select("id, name, partner_type, logo_url, status, address_line, city, state, zip, accreditation_status, membership_status, brand_primary_color, brand_secondary_color")
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -443,15 +550,28 @@
           const logoImg = s.logo_url
             ? '<img src="' + s.logo_url + '" alt="" style="width:26px;height:26px;border-radius:50%;object-fit:cover;margin-right:8px;vertical-align:middle;">'
             : "";
+          const statusPill = '<span class="status-pill ' + (s.status === "inactive" ? "status-revisions_requested" : "status-approved") + '">' +
+            (s.status === "inactive" ? "Inactive" : "Active") + "</span>";
+          const accreditationPill = s.accreditation_status
+            ? '<span class="status-pill status-pending_review">' + (ACCREDITATION_LABELS[s.accreditation_status] || s.accreditation_status) + "</span>"
+            : "";
+          const membershipPill = '<span class="status-pill status-draft">' + (MEMBERSHIP_LABELS[s.membership_status] || "Active member") + "</span>";
+          const cityState = [s.city, s.state].filter(Boolean).join(", ");
           return '<div class="list-item" style="align-items:center;">' +
             '<span style="display:flex;align-items:center;">' + logoImg + s.name + "</span>" +
-            '<span class="meta">' + s.partner_type + "</span></div>" +
-            '<div style="display:flex; gap:8px; align-items:center; padding:0 0 12px;">' +
+            '<span style="display:flex; gap:6px; align-items:center; flex-wrap:wrap; justify-content:flex-end;">' + statusPill + accreditationPill + membershipPill + "</span></div>" +
+            '<div class="meta" style="padding-bottom:6px;">' + s.partner_type + (cityState ? " &middot; " + cityState : "") + "</div>" +
+            '<div style="display:flex; gap:8px; align-items:center; padding:0 0 12px; flex-wrap:wrap;">' +
               '<input type="file" accept="image/*" class="logo-file-input" data-school-id="' + s.id + '" style="max-width:220px; font-size:12px;">' +
               '<button type="button" class="secondary logo-upload-btn" data-school-id="' + s.id + '">Upload logo</button>' +
+              '<button type="button" class="secondary school-edit-btn" data-school-id="' + s.id + '">Edit</button>' +
             "</div>";
         }).join("")
       : '<div class="empty-note">No schools added yet.</div>';
+
+    document.querySelectorAll(".school-edit-btn").forEach(btn => {
+      btn.addEventListener("click", () => openEditSchool(btn.dataset.schoolId));
+    });
 
     document.querySelectorAll(".logo-upload-btn").forEach(btn => {
       btn.addEventListener("click", async () => {
@@ -508,17 +628,88 @@
     const prevFilterVal = filterSelect.value;
     filterSelect.innerHTML = '<option value="">All schools</option>' + schoolOptions;
     filterSelect.value = prevFilterVal;
+
+    const adminSelect = document.getElementById("admin-school");
+    if (adminSelect) {
+      adminSelect.innerHTML = schoolOptions || '<option value="">Add a school first</option>';
+    }
+    const adminFilterSelect = document.getElementById("admin-school-filter");
+    if (adminFilterSelect) {
+      const prevAdminFilterVal = adminFilterSelect.value;
+      adminFilterSelect.innerHTML = '<option value="">All schools</option>' + schoolOptions;
+      adminFilterSelect.value = prevAdminFilterVal;
+    }
   }
+
+  function openEditSchool(id) {
+    const s = cachedSchools.find(sc => sc.id === id);
+    if (!s) return;
+    editingSchoolId = id;
+
+    document.getElementById("school-name").value = s.name || "";
+    document.getElementById("school-type").value = s.partner_type || "learning_center_microschool";
+    document.getElementById("school-status").value = s.status || "active";
+    document.getElementById("school-accreditation").value = s.accreditation_status || "";
+    document.getElementById("school-membership").value = s.membership_status || "active";
+    document.getElementById("school-address").value = s.address_line || "";
+    document.getElementById("school-city").value = s.city || "";
+    document.getElementById("school-state").value = s.state || "";
+    document.getElementById("school-zip").value = s.zip || "";
+    document.getElementById("school-color-primary").value = s.brand_primary_color || "#16243a";
+    document.getElementById("school-color-secondary").value = s.brand_secondary_color || "#00b863";
+
+    document.getElementById("school-form-title").textContent = "Edit school";
+    document.getElementById("school-submit-btn").textContent = "Save changes";
+    document.getElementById("school-cancel-edit-btn").style.display = "inline-flex";
+    clearMsg(document.getElementById("school-msg"));
+
+    document.getElementById("school-form").scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function exitSchoolEditMode() {
+    editingSchoolId = null;
+    document.getElementById("school-form").reset();
+    document.getElementById("school-color-primary").value = "#16243a";
+    document.getElementById("school-color-secondary").value = "#00b863";
+    document.getElementById("school-form-title").textContent = "Add a partner school";
+    document.getElementById("school-submit-btn").textContent = "Add school";
+    document.getElementById("school-cancel-edit-btn").style.display = "none";
+  }
+
+  document.getElementById("school-cancel-edit-btn").addEventListener("click", exitSchoolEditMode);
 
   document.getElementById("school-form").addEventListener("submit", async (e) => {
     e.preventDefault();
     const msgEl = document.getElementById("school-msg");
     clearMsg(msgEl);
 
-    const name = document.getElementById("school-name").value.trim();
-    const partner_type = document.getElementById("school-type").value;
+    const payload = {
+      name: document.getElementById("school-name").value.trim(),
+      partner_type: document.getElementById("school-type").value,
+      status: document.getElementById("school-status").value,
+      accreditation_status: document.getElementById("school-accreditation").value || null,
+      membership_status: document.getElementById("school-membership").value,
+      address_line: document.getElementById("school-address").value.trim() || null,
+      city: document.getElementById("school-city").value.trim() || null,
+      state: document.getElementById("school-state").value.trim() || null,
+      zip: document.getElementById("school-zip").value.trim() || null,
+      brand_primary_color: document.getElementById("school-color-primary").value,
+      brand_secondary_color: document.getElementById("school-color-secondary").value,
+    };
 
-    const { error } = await client.from("partner_schools").insert({ name, partner_type });
+    if (editingSchoolId) {
+      const { error } = await client.from("partner_schools").update(payload).eq("id", editingSchoolId);
+      if (error) {
+        showMsg(msgEl, error.message, "error");
+        return;
+      }
+      showMsg(msgEl, "School updated.", "success");
+      exitSchoolEditMode();
+      await loadSchools();
+      return;
+    }
+
+    const { error } = await client.from("partner_schools").insert(payload);
 
     if (error) {
       showMsg(msgEl, error.message, "error");
@@ -527,6 +718,8 @@
 
     showMsg(msgEl, "School added.", "success");
     document.getElementById("school-form").reset();
+    document.getElementById("school-color-primary").value = "#16243a";
+    document.getElementById("school-color-secondary").value = "#00b863";
     await loadSchools();
   });
 
@@ -597,6 +790,96 @@
     } finally {
       submitBtn.disabled = false;
       submitBtn.textContent = "Add teacher";
+    }
+  });
+
+  // ---------- Administrators ----------
+  let cachedAdministrators = [];
+
+  async function loadAdministrators() {
+    const { data, error } = await client
+      .from("accounts")
+      .select("id, name, email, phone, partner_school_id")
+      .eq("role", "school_admin")
+      .order("created_at", { ascending: false });
+
+    const listEl = document.getElementById("admin-list");
+    if (error) {
+      listEl.innerHTML = '<div class="empty-note">Could not load administrators: ' + error.message + "</div>";
+      return;
+    }
+
+    cachedAdministrators = data || [];
+    cachedAdminCount = cachedAdministrators.length;
+    const statEl = document.getElementById("stat-administrators");
+    if (statEl) statEl.textContent = cachedAdminCount;
+
+    renderAdministratorList();
+  }
+
+  function renderAdministratorList() {
+    const listEl = document.getElementById("admin-list");
+    const filterSelect = document.getElementById("admin-school-filter");
+    const filterVal = filterSelect ? filterSelect.value : "";
+    const filtered = filterVal
+      ? cachedAdministrators.filter(a => a.partner_school_id === filterVal)
+      : cachedAdministrators;
+
+    listEl.innerHTML = filtered.length
+      ? filtered.map(a => {
+          const school = cachedSchools.find(s => s.id === a.partner_school_id);
+          return '<div class="list-item"><span>' + a.name +
+                 '<br><span class="meta">' + a.email + (a.phone ? " &middot; " + a.phone : "") + '</span></span>' +
+                 '<span class="meta">' + (school ? school.name : "") + "</span></div>";
+        }).join("")
+      : '<div class="empty-note">' + (filterVal ? "No administrators at this school." : "No administrators added yet.") + "</div>";
+  }
+
+  const adminFilterSelectEl = document.getElementById("admin-school-filter");
+  if (adminFilterSelectEl) adminFilterSelectEl.addEventListener("change", renderAdministratorList);
+
+  document.getElementById("admin-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const msgEl = document.getElementById("admin-msg");
+    clearMsg(msgEl);
+    const submitBtn = e.target.querySelector("button");
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Adding...";
+
+    const partner_school_id = document.getElementById("admin-school").value;
+    const name = document.getElementById("admin-name").value.trim();
+    const email = document.getElementById("admin-email").value.trim();
+    const phone = document.getElementById("admin-phone").value.trim() || null;
+    const password = document.getElementById("admin-password").value;
+
+    try {
+      const { data: sessionData } = await client.auth.getSession();
+      const accessToken = sessionData.session.access_token;
+
+      const resp = await fetch(CREATE_ACCOUNT_FUNCTION_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer " + accessToken,
+        },
+        body: JSON.stringify({ name, email, password, phone, role: "school_admin", partner_school_id }),
+      });
+
+      const result = await resp.json();
+
+      if (!resp.ok) {
+        showMsg(msgEl, result.error || "Something went wrong creating this administrator.", "error");
+        return;
+      }
+
+      showMsg(msgEl, "Administrator account created. They can log in with the email and password you set.", "success");
+      document.getElementById("admin-form").reset();
+      await loadAdministrators();
+    } catch (err) {
+      showMsg(msgEl, "Network error: " + err.message, "error");
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Add administrator";
     }
   });
 
