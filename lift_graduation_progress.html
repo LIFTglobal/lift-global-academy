@@ -17,26 +17,49 @@
 </div>
 
 <div id="app-wrap" style="display:none;">
+  <div class="workspace">
 
-  <div class="navbar">
-    <div class="navbar-inner">
-      <a class="navbar-brand" href="lift_home_evaluator.html">
-        <img class="navbar-logo" src="lift-logo.png" alt="LIFT Global Academy logo">
-        <div>
-          <div class="navbar-title">Graduation progress</div>
-          <div class="navbar-subtitle">Signed in as <span id="who-am-i"></span></div>
+    <div class="mobile-topbar">
+      <button type="button" class="mobile-menu-btn" id="mobile-menu-btn" aria-label="Open menu"><span></span><span></span><span></span></button>
+      <img class="mobile-topbar-logo" src="lift-logo.png" alt="">
+      <div class="mobile-topbar-title">LIFT Global</div>
+    </div>
+    <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+
+    <div class="sidebar" id="sidebar">
+      <a class="sidebar-brand" href="lift_graduation_progress.html">
+        <img class="sidebar-logo" src="lift-logo.png" alt="LIFT Global Academy logo">
+        <div class="sidebar-brand-text">
+          <div class="sidebar-brand-title">LIFT Global</div>
+          <div class="sidebar-brand-subtitle">Evaluator workspace</div>
         </div>
       </a>
-      <div class="navbar-actions">
-        <a class="navbar-back" href="lift_home_evaluator.html">&larr; Back to home</a>
-      </div>
+
+      <button type="button" class="sidebar-nav-item active" style="cursor:default;">
+        <span class="sidebar-nav-dot"></span><span class="sidebar-nav-label">Graduation progress</span>
+      </button>
+
+      <div class="sidebar-spacer"></div>
+      <button type="button" class="sidebar-collapse-toggle" id="sidebar-collapse-btn">
+        <span class="chevron"></span><span>Collapse</span>
+      </button>
+      <div class="sidebar-footer">Signed in as<strong id="who-am-i"></strong></div>
     </div>
-  </div>
 
-  <div class="wrap">
+    <div class="workspace-main">
+      <div class="workspace-header">
+        <div>
+          <div class="workspace-header-title">Graduation progress</div>
+          <div class="workspace-header-subtitle">Track credits earned against requirements</div>
+        </div>
+        <div class="workspace-header-actions">
+          <a class="header-link" href="lift_home_evaluator.html">Home</a>
+          <button type="button" class="header-link" id="signout-btn">Sign out</button>
+        </div>
+      </div>
 
-    <div class="card">
-      <h2>Select a student</h2>
+    <div class="panel">
+      <h3>Select a student</h3>
       <select id="student-select"></select>
 
       <div class="overall-bar-wrap" id="overall-wrap" style="display:none;">
@@ -48,11 +71,12 @@
       </div>
     </div>
 
-    <div class="card" id="detail-card" style="display:none;">
-      <h2>Credits by requirement</h2>
+    <div class="panel" id="detail-card" style="display:none; margin-top:20px;">
+      <h3>Credits by requirement</h3>
       <div id="requirements-list"></div>
     </div>
 
+    </div>
   </div>
 </div>
 
@@ -65,6 +89,24 @@
 
   let myAccount = null;
   let cachedRequirements = [];
+
+  document.getElementById("mobile-menu-btn").addEventListener("click", () => {
+    document.getElementById("sidebar").classList.add("open");
+    document.getElementById("sidebar-backdrop").classList.add("open");
+  });
+  document.getElementById("sidebar-backdrop").addEventListener("click", () => {
+    document.getElementById("sidebar").classList.remove("open");
+    document.getElementById("sidebar-backdrop").classList.remove("open");
+  });
+
+  document.getElementById("sidebar-collapse-btn").addEventListener("click", () => {
+    document.getElementById("sidebar").classList.toggle("collapsed");
+  });
+
+  document.getElementById("signout-btn").addEventListener("click", async () => {
+    await client.auth.signOut();
+    window.location.href = "lift_login.html";
+  });
 
   async function checkAccess() {
     const { data: sessionData } = await client.auth.getSession();

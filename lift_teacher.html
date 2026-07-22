@@ -17,26 +17,52 @@
 </div>
 
 <div id="app-wrap" style="display:none;">
+  <div class="workspace">
 
-  <div class="navbar">
-    <div class="navbar-inner">
-      <a class="navbar-brand" href="lift_home_teacher.html">
-        <img class="navbar-logo" src="lift-logo.png" alt="LIFT Global Academy logo">
-        <div>
-          <div class="navbar-title">Teacher dashboard</div>
-          <div class="navbar-subtitle">Signed in as <span id="who-am-i"></span></div>
+    <div class="mobile-topbar">
+      <button type="button" class="mobile-menu-btn" id="mobile-menu-btn" aria-label="Open menu"><span></span><span></span><span></span></button>
+      <img class="mobile-topbar-logo" src="lift-logo.png" alt="">
+      <div class="mobile-topbar-title">LIFT Global</div>
+    </div>
+    <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+
+    <div class="sidebar" id="sidebar">
+      <a class="sidebar-brand" href="lift_teacher.html">
+        <img class="sidebar-logo" src="lift-logo.png" alt="LIFT Global Academy logo">
+        <div class="sidebar-brand-text">
+          <div class="sidebar-brand-title">LIFT Global</div>
+          <div class="sidebar-brand-subtitle">Teacher workspace</div>
         </div>
       </a>
-      <div class="navbar-actions">
-        <a class="navbar-back" href="lift_home_teacher.html">&larr; Back to home</a>
-      </div>
+
+      <button type="button" class="sidebar-nav-item active" data-section="submit">
+        <span class="sidebar-nav-dot"></span><span class="sidebar-nav-label">Submit grades</span>
+      </button>
+      <button type="button" class="sidebar-nav-item" data-section="submissions">
+        <span class="sidebar-nav-dot"></span><span class="sidebar-nav-label">Your submissions</span>
+      </button>
+
+      <div class="sidebar-spacer"></div>
+      <button type="button" class="sidebar-collapse-toggle" id="sidebar-collapse-btn">
+        <span class="chevron"></span><span>Collapse</span>
+      </button>
+      <div class="sidebar-footer">Signed in as<strong id="who-am-i"></strong></div>
     </div>
-  </div>
 
-  <div class="wrap">
+    <div class="workspace-main">
+      <div class="workspace-header">
+        <div>
+          <div class="workspace-header-title" id="section-title">Submit a grade &amp; evaluation</div>
+          <div class="workspace-header-subtitle" id="section-subtitle">Secondary / high school — one subject at a time, per student</div>
+        </div>
+        <div class="workspace-header-actions">
+          <a class="header-link" href="lift_home_teacher.html">Home</a>
+          <button type="button" class="header-link" id="signout-btn">Sign out</button>
+        </div>
+      </div>
 
-    <div class="card">
-      <h2>Submit a grade &amp; evaluation</h2>
+    <section data-section-panel="submit">
+    <div class="panel">
       <form id="grade-form">
         <label for="student-select">Student</label>
         <select id="student-select" required></select>
@@ -71,12 +97,15 @@
       </form>
       <div class="msg" id="grade-msg"></div>
     </div>
+    </section>
 
-    <div class="card">
-      <h2>Your submissions</h2>
+    <section data-section-panel="submissions" style="display:none;">
+    <div class="panel">
       <div id="submissions-list"></div>
     </div>
+    </section>
 
+    </div>
   </div>
 </div>
 
@@ -89,6 +118,49 @@
 
   let myAccount = null;
   let cachedStudents = [];
+
+  const SECTION_META = {
+    submit: { title: "Submit a grade &amp; evaluation", subtitle: "Secondary / high school — one subject at a time, per student" },
+    submissions: { title: "Your submissions", subtitle: "Everything you've submitted this term" },
+  };
+
+  function switchSection(section) {
+    document.querySelectorAll(".sidebar-nav-item").forEach(item => {
+      item.classList.toggle("active", item.dataset.section === section);
+    });
+    document.querySelectorAll("[data-section-panel]").forEach(panel => {
+      panel.style.display = panel.dataset.sectionPanel === section ? "block" : "none";
+    });
+    const meta = SECTION_META[section] || SECTION_META.submit;
+    document.getElementById("section-title").innerHTML = meta.title;
+    document.getElementById("section-subtitle").textContent = meta.subtitle;
+  }
+
+  document.querySelectorAll(".sidebar-nav-item").forEach(item => {
+    item.addEventListener("click", () => {
+      switchSection(item.dataset.section);
+      document.getElementById("sidebar").classList.remove("open");
+      document.getElementById("sidebar-backdrop").classList.remove("open");
+    });
+  });
+
+  document.getElementById("mobile-menu-btn").addEventListener("click", () => {
+    document.getElementById("sidebar").classList.add("open");
+    document.getElementById("sidebar-backdrop").classList.add("open");
+  });
+  document.getElementById("sidebar-backdrop").addEventListener("click", () => {
+    document.getElementById("sidebar").classList.remove("open");
+    document.getElementById("sidebar-backdrop").classList.remove("open");
+  });
+
+  document.getElementById("sidebar-collapse-btn").addEventListener("click", () => {
+    document.getElementById("sidebar").classList.toggle("collapsed");
+  });
+
+  document.getElementById("signout-btn").addEventListener("click", async () => {
+    await client.auth.signOut();
+    window.location.href = "lift_login.html";
+  });
 
   function showMsg(el, text, type) {
     el.textContent = text;

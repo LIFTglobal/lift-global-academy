@@ -17,24 +17,62 @@
 </div>
 
 <div id="app-wrap" style="display:none;">
+  <div class="workspace">
 
-  <div class="navbar">
-    <div class="navbar-inner">
-      <a class="navbar-brand" href="lift_home_evaluator.html">
-        <img class="navbar-logo" src="lift-logo.png" alt="LIFT Global Academy logo">
-        <div>
-          <div class="navbar-title">LIFT Global Academy</div>
-          <div class="navbar-subtitle">Signed in as <span id="who-am-i"></span></div>
+    <div class="mobile-topbar">
+      <button type="button" class="mobile-menu-btn" id="mobile-menu-btn" aria-label="Open menu"><span></span><span></span><span></span></button>
+      <img class="mobile-topbar-logo" src="lift-logo.png" alt="">
+      <div class="mobile-topbar-title">LIFT Global</div>
+    </div>
+    <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+
+    <div class="sidebar" id="sidebar">
+      <a class="sidebar-brand" href="lift_home_evaluator.html">
+        <img class="sidebar-logo" src="lift-logo.png" alt="LIFT Global Academy logo">
+        <div class="sidebar-brand-text">
+          <div class="sidebar-brand-title">LIFT Global</div>
+          <div class="sidebar-brand-subtitle">Evaluator workspace</div>
         </div>
       </a>
-      <div class="navbar-actions">
-        <button class="signout" id="signout-btn">Sign out</button>
-      </div>
-    </div>
-  </div>
 
-  <div class="wrap">
-    <div class="card">
+      <a class="sidebar-nav-item active" href="lift_home_evaluator.html">
+        <span class="sidebar-nav-dot"></span><span class="sidebar-nav-label">Home</span>
+      </a>
+      <a class="sidebar-nav-item" href="lift_evaluator.html">
+        <span class="sidebar-nav-dot"></span><span class="sidebar-nav-label">Review queue</span>
+      </a>
+      <a class="sidebar-nav-item" href="lift_admin.html">
+        <span class="sidebar-nav-dot"></span><span class="sidebar-nav-label">Manage schools</span>
+      </a>
+      <a class="sidebar-nav-item" href="lift_billing.html">
+        <span class="sidebar-nav-dot"></span><span class="sidebar-nav-label">Billing</span>
+      </a>
+      <a class="sidebar-nav-item" href="lift_graduation_progress.html">
+        <span class="sidebar-nav-dot"></span><span class="sidebar-nav-label">Graduation progress</span>
+      </a>
+      <a class="sidebar-nav-item" href="lift_transcript.html">
+        <span class="sidebar-nav-dot"></span><span class="sidebar-nav-label">Transcript</span>
+      </a>
+
+      <div class="sidebar-spacer"></div>
+      <button type="button" class="sidebar-collapse-toggle" id="sidebar-collapse-btn">
+        <span class="chevron"></span><span>Collapse</span>
+      </button>
+      <div class="sidebar-footer">Signed in as<strong id="who-am-i"></strong></div>
+    </div>
+
+    <div class="workspace-main">
+      <div class="workspace-header">
+        <div>
+          <div class="workspace-header-title">Dashboard</div>
+          <div class="workspace-header-subtitle">Choose where you want to work</div>
+        </div>
+        <div class="workspace-header-actions">
+          <button type="button" class="header-link" id="signout-btn">Sign out</button>
+        </div>
+      </div>
+
+    <div class="panel">
       <div class="section-label">Review work</div>
       <div class="tile-grid">
         <a class="tile" href="lift_evaluator.html">
@@ -79,8 +117,9 @@
         </span>
       </div>
     </div>
-  </div>
 
+    </div>
+  </div>
 </div>
 
 <script>
@@ -89,6 +128,19 @@
 
   const { createClient } = supabase;
   const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  document.getElementById("mobile-menu-btn").addEventListener("click", () => {
+    document.getElementById("sidebar").classList.add("open");
+    document.getElementById("sidebar-backdrop").classList.add("open");
+  });
+  document.getElementById("sidebar-backdrop").addEventListener("click", () => {
+    document.getElementById("sidebar").classList.remove("open");
+    document.getElementById("sidebar-backdrop").classList.remove("open");
+  });
+
+  document.getElementById("sidebar-collapse-btn").addEventListener("click", () => {
+    document.getElementById("sidebar").classList.toggle("collapsed");
+  });
 
   async function checkAccess() {
     const { data: sessionData } = await client.auth.getSession();

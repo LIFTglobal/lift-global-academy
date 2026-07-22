@@ -17,31 +17,54 @@
 </div>
 
 <div id="app-wrap" style="display:none;">
+  <div class="workspace">
 
-  <div class="navbar">
-    <div class="navbar-inner">
-      <a class="navbar-brand" href="lift_home_teacher.html">
-        <img class="navbar-logo" src="lift-logo.png" alt="LIFT Global Academy logo">
-        <div>
-          <div class="navbar-title">Elementary classroom report</div>
-          <div class="navbar-subtitle">Signed in as <span id="who-am-i"></span></div>
+    <div class="mobile-topbar">
+      <button type="button" class="mobile-menu-btn" id="mobile-menu-btn" aria-label="Open menu"><span></span><span></span><span></span></button>
+      <img class="mobile-topbar-logo" src="lift-logo.png" alt="">
+      <div class="mobile-topbar-title">LIFT Global</div>
+    </div>
+    <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+
+    <div class="sidebar" id="sidebar">
+      <a class="sidebar-brand" href="lift_teacher_elementary.html">
+        <img class="sidebar-logo" src="lift-logo.png" alt="LIFT Global Academy logo">
+        <div class="sidebar-brand-text">
+          <div class="sidebar-brand-title">LIFT Global</div>
+          <div class="sidebar-brand-subtitle">Teacher workspace</div>
         </div>
       </a>
-      <div class="navbar-actions">
-        <a class="navbar-back" href="lift_home_teacher.html">&larr; Back to home</a>
-      </div>
+
+      <button type="button" class="sidebar-nav-item active" style="cursor:default;">
+        <span class="sidebar-nav-dot"></span><span class="sidebar-nav-label">Elementary classroom</span>
+      </button>
+
+      <div class="sidebar-spacer"></div>
+      <button type="button" class="sidebar-collapse-toggle" id="sidebar-collapse-btn">
+        <span class="chevron"></span><span>Collapse</span>
+      </button>
+      <div class="sidebar-footer">Signed in as<strong id="who-am-i"></strong></div>
     </div>
-  </div>
 
-  <div class="wrap">
+    <div class="workspace-main">
+      <div class="workspace-header">
+        <div>
+          <div class="workspace-header-title">Elementary classroom report</div>
+          <div class="workspace-header-subtitle">All subjects together, per student</div>
+        </div>
+        <div class="workspace-header-actions">
+          <a class="header-link" href="lift_home_teacher.html">Home</a>
+          <button type="button" class="header-link" id="signout-btn">Sign out</button>
+        </div>
+      </div>
 
-    <div class="card">
-      <h2>Select a student</h2>
+    <div class="panel">
+      <h3>Select a student</h3>
       <select id="student-select"></select>
     </div>
 
-    <div class="card" id="subjects-card" style="display:none;">
-      <h2>Term report — all subjects</h2>
+    <div class="panel" id="subjects-card" style="display:none; margin-top:20px;">
+      <h3>Term report — all subjects</h3>
       <div id="subjects-container"></div>
 
       <label for="comments">Comments for LIFT (optional)</label>
@@ -52,11 +75,12 @@
       <div class="msg" id="form-msg"></div>
     </div>
 
-    <div class="card">
-      <h2>Submitted reports this term</h2>
+    <div class="panel" style="margin-top:20px;">
+      <h3>Submitted reports this term</h3>
       <div id="submissions-list"></div>
     </div>
 
+    </div>
   </div>
 </div>
 
@@ -72,6 +96,24 @@
 
   let myAccount = null;
   let cachedStudents = [];
+
+  document.getElementById("mobile-menu-btn").addEventListener("click", () => {
+    document.getElementById("sidebar").classList.add("open");
+    document.getElementById("sidebar-backdrop").classList.add("open");
+  });
+  document.getElementById("sidebar-backdrop").addEventListener("click", () => {
+    document.getElementById("sidebar").classList.remove("open");
+    document.getElementById("sidebar-backdrop").classList.remove("open");
+  });
+
+  document.getElementById("sidebar-collapse-btn").addEventListener("click", () => {
+    document.getElementById("sidebar").classList.toggle("collapsed");
+  });
+
+  document.getElementById("signout-btn").addEventListener("click", async () => {
+    await client.auth.signOut();
+    window.location.href = "lift_login.html";
+  });
 
   function showMsg(el, text, type) {
     el.textContent = text;

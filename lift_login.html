@@ -8,13 +8,22 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   .login-logo { width: 48px; height: 48px; border-radius: 50%; margin: 0 auto 16px; display: block; }
+  body {
+    background: radial-gradient(circle at 30% 20%, #1a2e44 0%, #16243a 45%, #0f1c2e 100%);
+  }
+  .auth-card {
+    border-radius: 18px;
+    box-shadow: 0 24px 60px rgba(0,0,0,.35);
+    padding: 36px 34px;
+    border: none;
+  }
 </style>
 </head>
 <body>
 
 <div class="center-page">
 
-<div class="card" id="login-card" style="max-width:380px; width:100%;">
+<div class="card auth-card" id="login-card" style="max-width:380px; width:100%;">
   <img class="login-logo" src="lift-logo.png" alt="LIFT Global Academy logo">
   <h1 style="text-align:center;">LIFT Global Academy</h1>
   <div class="subtitle" style="text-align:center; margin-bottom:28px;">Sign in to your account</div>
@@ -31,7 +40,7 @@
   </div>
 </div>
 
-<div class="card" id="forgot-card" style="display:none; max-width:380px; width:100%;">
+<div class="card auth-card" id="forgot-card" style="display:none; max-width:380px; width:100%;">
   <img class="login-logo" src="lift-logo.png" alt="LIFT Global Academy logo">
   <h1 style="text-align:center;">Reset your password</h1>
   <div class="subtitle" style="text-align:center; margin-bottom:28px;">Enter your email and we'll send you a reset link.</div>
@@ -47,7 +56,7 @@
   </div>
 </div>
 
-<div class="card success-screen" id="success-card" style="display:none; max-width:380px; width:100%; text-align:center;">
+<div class="card auth-card success-screen" id="success-card" style="display:none; max-width:380px; width:100%; text-align:center;">
   <h1>You're logged in</h1>
   <div class="info-row"><span class="info-label">Name</span><span class="info-value" id="info-name"></span></div>
   <div class="info-row"><span class="info-label">Email</span><span class="info-value" id="info-email"></span></div>

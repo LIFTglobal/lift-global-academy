@@ -17,25 +17,47 @@
 </div>
 
 <div id="app-wrap" style="display:none;">
+  <div class="workspace">
 
-  <div class="navbar">
-    <div class="navbar-inner">
-      <a class="navbar-brand" href="lift_home_teacher.html">
-        <img class="navbar-logo" src="lift-logo.png" alt="LIFT Global Academy logo">
-        <div>
-          <div class="navbar-title">LIFT Global Academy</div>
-          <div class="navbar-subtitle">Signed in as <span id="who-am-i"></span></div>
+    <div class="mobile-topbar">
+      <button type="button" class="mobile-menu-btn" id="mobile-menu-btn" aria-label="Open menu"><span></span><span></span><span></span></button>
+      <img class="mobile-topbar-logo" src="lift-logo.png" alt="">
+      <div class="mobile-topbar-title">LIFT Global</div>
+    </div>
+    <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+
+    <div class="sidebar" id="sidebar">
+      <a class="sidebar-brand" href="lift_home_teacher.html">
+        <img class="sidebar-logo" src="lift-logo.png" alt="LIFT Global Academy logo">
+        <div class="sidebar-brand-text">
+          <div class="sidebar-brand-title">LIFT Global</div>
+          <div class="sidebar-brand-subtitle">Teacher workspace</div>
         </div>
       </a>
-      <div class="navbar-actions">
-        <button class="signout" id="signout-btn">Sign out</button>
-      </div>
-    </div>
-  </div>
 
-  <div class="wrap">
-    <div class="card">
-      <div class="section-label">Choose your view</div>
+      <button type="button" class="sidebar-nav-item active" style="cursor:default;">
+        <span class="sidebar-nav-dot"></span><span class="sidebar-nav-label">Dashboard</span>
+      </button>
+
+      <div class="sidebar-spacer"></div>
+      <button type="button" class="sidebar-collapse-toggle" id="sidebar-collapse-btn">
+        <span class="chevron"></span><span>Collapse</span>
+      </button>
+      <div class="sidebar-footer">Signed in as<strong id="who-am-i"></strong></div>
+    </div>
+
+    <div class="workspace-main">
+      <div class="workspace-header">
+        <div>
+          <div class="workspace-header-title">Dashboard</div>
+          <div class="workspace-header-subtitle">Choose your view</div>
+        </div>
+        <div class="workspace-header-actions">
+          <button type="button" class="header-link" id="signout-btn">Sign out</button>
+        </div>
+      </div>
+
+    <div class="panel">
       <div class="tile-grid">
         <a class="tile" href="lift_teacher.html">
           <div class="tile-title">Secondary / high school</div>
@@ -52,8 +74,9 @@
       </div>
       <div class="hint">Not sure? Pick whichever matches how you teach — you can switch any time by coming back to this page.</div>
     </div>
-  </div>
 
+    </div>
+  </div>
 </div>
 
 <script>
@@ -62,6 +85,19 @@
 
   const { createClient } = supabase;
   const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  document.getElementById("mobile-menu-btn").addEventListener("click", () => {
+    document.getElementById("sidebar").classList.add("open");
+    document.getElementById("sidebar-backdrop").classList.add("open");
+  });
+  document.getElementById("sidebar-backdrop").addEventListener("click", () => {
+    document.getElementById("sidebar").classList.remove("open");
+    document.getElementById("sidebar-backdrop").classList.remove("open");
+  });
+
+  document.getElementById("sidebar-collapse-btn").addEventListener("click", () => {
+    document.getElementById("sidebar").classList.toggle("collapsed");
+  });
 
   async function checkAccess() {
     const { data: sessionData } = await client.auth.getSession();

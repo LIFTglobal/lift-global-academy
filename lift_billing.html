@@ -17,27 +17,48 @@
 </div>
 
 <div id="app-wrap" style="display:none;">
+  <div class="workspace">
 
-  <div class="navbar">
-    <div class="navbar-inner">
-      <a class="navbar-brand" href="lift_admin.html">
-        <img class="navbar-logo" src="lift-logo.png" alt="LIFT Global Academy logo">
-        <div>
-          <div class="navbar-title">Billing</div>
-          <div class="navbar-subtitle">Signed in as <span id="who-am-i"></span></div>
+    <div class="mobile-topbar">
+      <button type="button" class="mobile-menu-btn" id="mobile-menu-btn" aria-label="Open menu"><span></span><span></span><span></span></button>
+      <img class="mobile-topbar-logo" src="lift-logo.png" alt="">
+      <div class="mobile-topbar-title">LIFT Global</div>
+    </div>
+    <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+
+    <div class="sidebar" id="sidebar">
+      <a class="sidebar-brand" href="lift_billing.html">
+        <img class="sidebar-logo" src="lift-logo.png" alt="LIFT Global Academy logo">
+        <div class="sidebar-brand-text">
+          <div class="sidebar-brand-title">LIFT Global</div>
+          <div class="sidebar-brand-subtitle">Billing workspace</div>
         </div>
       </a>
-      <div class="navbar-actions">
-        <a class="navbar-back" href="lift_admin.html">&larr; Back to admin</a>
-      </div>
+
+      <button type="button" class="sidebar-nav-item active" style="cursor:default;">
+        <span class="sidebar-nav-dot"></span><span class="sidebar-nav-label">Invoices</span>
+      </button>
+
+      <div class="sidebar-spacer"></div>
+      <button type="button" class="sidebar-collapse-toggle" id="sidebar-collapse-btn">
+        <span class="chevron"></span><span>Collapse</span>
+      </button>
+      <div class="sidebar-footer">Signed in as<strong id="who-am-i"></strong></div>
     </div>
-  </div>
 
-  <div class="wrap">
+    <div class="workspace-main">
+      <div class="workspace-header">
+        <div>
+          <div class="workspace-header-title">Invoices</div>
+          <div class="workspace-header-subtitle" id="billing-hint"></div>
+        </div>
+        <div class="workspace-header-actions">
+          <a class="header-link" id="home-link" href="lift_admin.html">Admin</a>
+          <button type="button" class="header-link" id="signout-btn">Sign out</button>
+        </div>
+      </div>
 
-    <div class="card">
-      <h2>Invoices</h2>
-      <div class="hint" style="margin-top:0; margin-bottom:14px;" id="billing-hint"></div>
+    <div class="panel">
 
       <div id="invoice-form-wrap" style="display:none;">
         <h3>Create an invoice</h3>
@@ -56,6 +77,7 @@
       <div id="invoice-list" style="margin-top:18px;"></div>
     </div>
 
+    </div>
   </div>
 </div>
 
@@ -81,6 +103,24 @@
 
   let myAccount = null;
   let cachedSchools = [];
+
+  document.getElementById("mobile-menu-btn").addEventListener("click", () => {
+    document.getElementById("sidebar").classList.add("open");
+    document.getElementById("sidebar-backdrop").classList.add("open");
+  });
+  document.getElementById("sidebar-backdrop").addEventListener("click", () => {
+    document.getElementById("sidebar").classList.remove("open");
+    document.getElementById("sidebar-backdrop").classList.remove("open");
+  });
+
+  document.getElementById("sidebar-collapse-btn").addEventListener("click", () => {
+    document.getElementById("sidebar").classList.toggle("collapsed");
+  });
+
+  document.getElementById("signout-btn").addEventListener("click", async () => {
+    await client.auth.signOut();
+    window.location.href = "lift_login.html";
+  });
 
   // ---------- Gate: lift_evaluator (all schools) or school_admin (own school only) ----------
   async function checkAccess() {
@@ -113,6 +153,8 @@
 
     myAccount = account;
     document.getElementById("who-am-i").textContent = account.name + " (" + account.role + ")";
+    document.getElementById("home-link").href = account.role === "lift_evaluator" ? "lift_home_evaluator.html" : "lift_admin.html";
+    document.getElementById("home-link").textContent = account.role === "lift_evaluator" ? "Home" : "Admin";
     document.getElementById("gate-wrap").style.display = "none";
     document.getElementById("app-wrap").style.display = "block";
 

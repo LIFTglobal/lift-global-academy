@@ -17,30 +17,52 @@
 </div>
 
 <div id="app-wrap" style="display:none;">
+  <div class="workspace">
 
-  <div class="navbar">
-    <div class="navbar-inner">
-      <a class="navbar-brand" href="lift_home_evaluator.html">
-        <img class="navbar-logo" src="lift-logo.png" alt="LIFT Global Academy logo">
-        <div>
-          <div class="navbar-title">Evaluator review queue</div>
-          <div class="navbar-subtitle">Signed in as <span id="who-am-i"></span></div>
+    <div class="mobile-topbar">
+      <button type="button" class="mobile-menu-btn" id="mobile-menu-btn" aria-label="Open menu"><span></span><span></span><span></span></button>
+      <img class="mobile-topbar-logo" src="lift-logo.png" alt="">
+      <div class="mobile-topbar-title">LIFT Global</div>
+    </div>
+    <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+
+    <div class="sidebar" id="sidebar">
+      <a class="sidebar-brand" href="lift_evaluator.html">
+        <img class="sidebar-logo" src="lift-logo.png" alt="LIFT Global Academy logo">
+        <div class="sidebar-brand-text">
+          <div class="sidebar-brand-title">LIFT Global</div>
+          <div class="sidebar-brand-subtitle">Evaluator workspace</div>
         </div>
       </a>
-      <div class="navbar-actions">
-        <a class="navbar-back" href="lift_home_evaluator.html">&larr; Back to home</a>
-      </div>
+
+      <button type="button" class="sidebar-nav-item active" style="cursor:default;">
+        <span class="sidebar-nav-dot"></span><span class="sidebar-nav-label">Review queue</span>
+      </button>
+
+      <div class="sidebar-spacer"></div>
+      <button type="button" class="sidebar-collapse-toggle" id="sidebar-collapse-btn">
+        <span class="chevron"></span><span>Collapse</span>
+      </button>
+      <div class="sidebar-footer">Signed in as<strong id="who-am-i"></strong></div>
     </div>
-  </div>
 
-  <div class="wrap">
+    <div class="workspace-main">
+      <div class="workspace-header">
+        <div>
+          <div class="workspace-header-title">Pending review</div>
+          <div class="workspace-header-subtitle">Submissions awaiting a LIFT evaluation decision</div>
+        </div>
+        <div class="workspace-header-actions">
+          <a class="header-link" href="lift_home_evaluator.html">Home</a>
+          <button type="button" class="header-link" id="signout-btn">Sign out</button>
+        </div>
+      </div>
 
-    <div class="card" id="queue-card">
-      <h2>Pending review</h2>
+    <div class="panel" id="queue-card">
       <div id="queue-list"></div>
     </div>
 
-    <div class="card" id="detail-card" style="display:none;">
+    <div class="panel" id="detail-card" style="display:none;">
       <button class="back" id="back-btn">&larr; Back to queue</button>
       <div style="margin-top:20px;">
         <div class="detail-row">
@@ -88,6 +110,7 @@
       </div>
     </div>
 
+    </div>
   </div>
 </div>
 
@@ -100,6 +123,24 @@
 
   let myAccount = null;
   let currentPackage = null;
+
+  document.getElementById("mobile-menu-btn").addEventListener("click", () => {
+    document.getElementById("sidebar").classList.add("open");
+    document.getElementById("sidebar-backdrop").classList.add("open");
+  });
+  document.getElementById("sidebar-backdrop").addEventListener("click", () => {
+    document.getElementById("sidebar").classList.remove("open");
+    document.getElementById("sidebar-backdrop").classList.remove("open");
+  });
+
+  document.getElementById("sidebar-collapse-btn").addEventListener("click", () => {
+    document.getElementById("sidebar").classList.toggle("collapsed");
+  });
+
+  document.getElementById("signout-btn").addEventListener("click", async () => {
+    await client.auth.signOut();
+    window.location.href = "lift_login.html";
+  });
 
   function showMsg(el, text, type) {
     el.textContent = text;

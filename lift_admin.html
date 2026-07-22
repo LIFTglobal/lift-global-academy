@@ -19,6 +19,13 @@
 <div id="app-wrap" style="display:none;">
   <div class="workspace">
 
+    <div class="mobile-topbar">
+      <button type="button" class="mobile-menu-btn" id="mobile-menu-btn" aria-label="Open menu"><span></span><span></span><span></span></button>
+      <img class="mobile-topbar-logo" src="lift-logo.png" alt="">
+      <div class="mobile-topbar-title">LIFT Global</div>
+    </div>
+    <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+
     <div class="sidebar" id="sidebar">
       <a class="sidebar-brand" href="lift_admin.html">
         <img class="sidebar-logo" src="lift-logo.png" alt="LIFT Global Academy logo">
@@ -333,11 +340,24 @@
   }
 
   document.querySelectorAll(".sidebar-nav-item").forEach(item => {
-    item.addEventListener("click", () => switchSection(item.dataset.section));
+    item.addEventListener("click", () => {
+      switchSection(item.dataset.section);
+      document.getElementById("sidebar").classList.remove("open");
+      document.getElementById("sidebar-backdrop").classList.remove("open");
+    });
   });
 
   document.getElementById("sidebar-collapse-btn").addEventListener("click", () => {
     document.getElementById("sidebar").classList.toggle("collapsed");
+  });
+
+  document.getElementById("mobile-menu-btn").addEventListener("click", () => {
+    document.getElementById("sidebar").classList.add("open");
+    document.getElementById("sidebar-backdrop").classList.add("open");
+  });
+  document.getElementById("sidebar-backdrop").addEventListener("click", () => {
+    document.getElementById("sidebar").classList.remove("open");
+    document.getElementById("sidebar-backdrop").classList.remove("open");
   });
 
   document.getElementById("signout-btn").addEventListener("click", async () => {
