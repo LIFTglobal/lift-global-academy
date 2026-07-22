@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LIFT Global Academy — Graduation Progress</title>
 <link rel="stylesheet" href="lift-style.css">
+<script>(function(){var t=localStorage.getItem("lift-theme");if(t==="dark")document.documentElement.setAttribute("data-theme","dark");})();</script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body class="page">
@@ -40,6 +41,10 @@
       </button>
 
       <div class="sidebar-spacer"></div>
+      <button type="button" class="theme-toggle" id="theme-toggle-btn">
+        <span class="theme-toggle-label">Dark mode</span>
+        <span class="theme-toggle-switch" id="theme-toggle-switch"><span class="theme-toggle-knob"></span></span>
+      </button>
       <button type="button" class="sidebar-collapse-toggle" id="sidebar-collapse-btn">
         <span class="chevron"></span><span>Collapse</span>
       </button>
@@ -98,6 +103,16 @@
     document.getElementById("sidebar").classList.remove("open");
     document.getElementById("sidebar-backdrop").classList.remove("open");
   });
+
+  function setTheme(dark) {
+    document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
+    document.getElementById("theme-toggle-switch").classList.toggle("on", dark);
+    localStorage.setItem("lift-theme", dark ? "dark" : "light");
+  }
+  document.getElementById("theme-toggle-btn").addEventListener("click", () => {
+    setTheme(document.documentElement.getAttribute("data-theme") !== "dark");
+  });
+  setTheme(document.documentElement.getAttribute("data-theme") === "dark");
 
   document.getElementById("sidebar-collapse-btn").addEventListener("click", () => {
     document.getElementById("sidebar").classList.toggle("collapsed");

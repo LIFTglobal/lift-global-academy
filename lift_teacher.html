@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LIFT Global Academy — Teacher</title>
 <link rel="stylesheet" href="lift-style.css">
+<script>(function(){var t=localStorage.getItem("lift-theme");if(t==="dark")document.documentElement.setAttribute("data-theme","dark");})();</script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body class="page">
@@ -35,6 +36,14 @@
         </div>
       </a>
 
+      <div class="sidebar-school-badge" id="sidebar-school-badge" style="display:none;">
+        <img class="sidebar-school-logo" id="sidebar-school-logo" src="" alt="">
+        <div style="overflow:hidden;">
+          <div class="sidebar-school-name" id="sidebar-school-name"></div>
+          <div class="sidebar-school-label" id="sidebar-school-label" style="color:var(--sidebar-dot);">Partner school</div>
+        </div>
+      </div>
+
       <button type="button" class="sidebar-nav-item active" data-section="submit">
         <span class="sidebar-nav-dot"></span><span class="sidebar-nav-label">Submit grades</span>
       </button>
@@ -43,6 +52,10 @@
       </button>
 
       <div class="sidebar-spacer"></div>
+      <button type="button" class="theme-toggle" id="theme-toggle-btn">
+        <span class="theme-toggle-label">Dark mode</span>
+        <span class="theme-toggle-switch" id="theme-toggle-switch"><span class="theme-toggle-knob"></span></span>
+      </button>
       <button type="button" class="sidebar-collapse-toggle" id="sidebar-collapse-btn">
         <span class="chevron"></span><span>Collapse</span>
       </button>
@@ -162,6 +175,16 @@
     document.getElementById("sidebar-backdrop").classList.remove("open");
   });
 
+  function setTheme(dark) {
+    document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
+    document.getElementById("theme-toggle-switch").classList.toggle("on", dark);
+    localStorage.setItem("lift-theme", dark ? "dark" : "light");
+  }
+  document.getElementById("theme-toggle-btn").addEventListener("click", () => {
+    setTheme(document.documentElement.getAttribute("data-theme") !== "dark");
+  });
+  setTheme(document.documentElement.getAttribute("data-theme") === "dark");
+
   document.getElementById("sidebar-collapse-btn").addEventListener("click", () => {
     document.getElementById("sidebar").classList.toggle("collapsed");
   });
@@ -187,6 +210,18 @@
     }[status] || status;
   }
 
+  function applySchoolBranding(school) {
+    if (!school) return;
+    const sidebar = document.getElementById("sidebar");
+    if (school.brand_primary_color) sidebar.style.background = school.brand_primary_color;
+    if (school.brand_secondary_color) sidebar.style.setProperty("--sidebar-dot", school.brand_secondary_color);
+    if (school.name) {
+      document.getElementById("sidebar-school-name").textContent = school.name;
+      document.getElementById("sidebar-school-badge").style.display = "flex";
+    }
+    document.getElementById("sidebar-school-logo").src = school.logo_url || "lift-logo.png";
+  }
+
   async function checkAccess() {
     const { data: sessionData } = await client.auth.getSession();
     if (!sessionData.session) {
@@ -198,7 +233,7 @@
     const userId = sessionData.session.user.id;
     const { data: account, error } = await client
       .from("accounts")
-      .select("id, name, role, partner_school_id")
+      .select("id, name, role, partner_school_id, partner_schools(name, logo_url, brand_primary_color, brand_secondary_color)")
       .eq("id", userId)
       .single();
 
@@ -216,6 +251,7 @@
     }
 
     myAccount = account;
+    applySchoolBranding(account.partner_schools);
     document.getElementById("who-am-i").textContent = account.name;
     document.getElementById("gate-wrap").style.display = "none";
     document.getElementById("app-wrap").style.display = "block";
