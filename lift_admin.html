@@ -44,6 +44,9 @@
       <button type="button" class="sidebar-nav-item" data-section="administrators">
         <span class="sidebar-nav-dot"></span><span class="sidebar-nav-label">Administrators</span>
       </button>
+      <button type="button" class="sidebar-nav-item" data-section="classes">
+        <span class="sidebar-nav-dot"></span><span class="sidebar-nav-label">Classes</span>
+      </button>
       <button type="button" class="sidebar-nav-item" data-section="students">
         <span class="sidebar-nav-dot"></span><span class="sidebar-nav-label">Students</span>
       </button>
@@ -180,17 +183,38 @@
       <section class="fade-in" id="section-teachers" data-section-panel="teachers" style="display:none;">
         <div class="grid-2">
           <div class="panel">
-            <h3>Add a teacher</h3>
+            <h3 id="teacher-form-title">Add a teacher</h3>
             <form id="teacher-form">
-              <label for="teacher-school">Partner school</label>
-              <select id="teacher-school" required></select>
               <label for="teacher-name">Teacher name</label>
               <input type="text" id="teacher-name" placeholder="e.g. J. Alavi" required>
-              <label for="teacher-email">Teacher email</label>
-              <input type="email" id="teacher-email" placeholder="teacher@example.com" required>
-              <label for="teacher-password">Temporary password</label>
-              <input type="text" id="teacher-password" placeholder="Give them something to start with" required>
-              <button type="submit">Add teacher</button>
+
+              <div id="teacher-account-fields">
+                <label for="teacher-school">Partner school</label>
+                <select id="teacher-school" required></select>
+                <label for="teacher-email">Teacher email</label>
+                <input type="email" id="teacher-email" placeholder="teacher@example.com" required>
+                <label for="teacher-password">Temporary password</label>
+                <input type="text" id="teacher-password" placeholder="Give them something to start with" required>
+              </div>
+
+              <label for="teacher-grade">Assigned grade level (elementary teachers only)</label>
+              <select id="teacher-grade">
+                <option value="">Not applicable — teaches specific classes</option>
+                <option value="-1">Pre-K</option>
+                <option value="0">Kindergarten</option>
+                <option value="1">Grade 1</option>
+                <option value="2">Grade 2</option>
+                <option value="3">Grade 3</option>
+                <option value="4">Grade 4</option>
+                <option value="5">Grade 5</option>
+              </select>
+
+              <div class="hint" id="teacher-edit-note" style="display:none;">School, email, and password can't be changed here.</div>
+
+              <div style="display:flex; gap:10px; margin-top:16px;">
+                <button type="submit" id="teacher-submit-btn">Add teacher</button>
+                <button type="button" class="secondary" id="teacher-cancel-edit-btn" style="display:none;">Cancel</button>
+              </div>
             </form>
             <div class="msg" id="teacher-msg"></div>
           </div>
@@ -227,6 +251,55 @@
             </div>
             <div id="admin-list"></div>
           </div>
+        </div>
+      </section>
+
+      <!-- ---------- Classes ---------- -->
+      <section class="fade-in" id="section-classes" data-section-panel="classes" style="display:none;">
+        <div class="grid-2">
+          <div class="panel">
+            <h3>Create a class</h3>
+            <form id="class-form">
+              <label for="class-school">Partner school</label>
+              <select id="class-school" required></select>
+              <label for="class-teacher">Teacher</label>
+              <select id="class-teacher" required></select>
+              <label for="class-title">Class title</label>
+              <input type="text" id="class-title" placeholder="e.g. Algebra 1 - Period 3" required>
+              <label for="class-subject">Subject</label>
+              <input type="text" id="class-subject" placeholder="e.g. Math" required>
+              <label for="class-grade">Grade level</label>
+              <select id="class-grade" required>
+                <option value="6">Grade 6</option>
+                <option value="7">Grade 7</option>
+                <option value="8">Grade 8</option>
+                <option value="9">Grade 9</option>
+                <option value="10">Grade 10</option>
+                <option value="11">Grade 11</option>
+                <option value="12">Grade 12</option>
+              </select>
+              <label for="class-term">Term</label>
+              <input type="text" id="class-term" placeholder="e.g. Fall 2026">
+              <button type="submit">Create class</button>
+            </form>
+            <div class="msg" id="class-msg"></div>
+          </div>
+          <div class="panel panel--list">
+            <div style="display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid var(--slate-100); flex-wrap:wrap;">
+              <label for="class-school-filter" style="margin:0; font-size:12.5px; white-space:nowrap;">Filter by school</label>
+              <select id="class-school-filter" style="max-width:280px;">
+                <option value="">All schools</option>
+              </select>
+            </div>
+            <div id="class-list"></div>
+          </div>
+        </div>
+
+        <div class="panel" id="roster-panel" style="display:none; margin-top:20px;">
+          <h3 id="roster-title">Manage roster</h3>
+          <div class="hint" id="roster-hint" style="margin-top:0;">Check the students enrolled in this class.</div>
+          <div id="roster-checklist" class="checkbox-grid" style="margin-top:14px;"></div>
+          <button type="button" id="roster-close-btn" class="secondary" style="margin-top:16px;">Done</button>
         </div>
       </section>
 
@@ -442,6 +515,7 @@
     schools: { title: "Schools", subtitle: "Manage partner schools and their logos" },
     teachers: { title: "Teachers", subtitle: "Give teachers access to upload grades and portfolios" },
     administrators: { title: "Administrators", subtitle: "School administrator accounts for each partner school" },
+    classes: { title: "Classes", subtitle: "Middle/high school classes and their rosters" },
     students: { title: "Students", subtitle: "Enrolled students across all partner schools" },
     history: { title: "School history", subtitle: "Prior-school records used to build transcripts" },
   };
@@ -522,6 +596,7 @@
     await loadTeachers();
     await loadAdministrators();
     await loadStudents();
+    await loadSections();
   }
 
   // ---------- Schools ----------
@@ -642,6 +717,17 @@
       adminFilterSelect.innerHTML = '<option value="">All schools</option>' + schoolOptions;
       adminFilterSelect.value = prevAdminFilterVal;
     }
+
+    const classSchoolSelect = document.getElementById("class-school");
+    if (classSchoolSelect) {
+      classSchoolSelect.innerHTML = schoolOptions || '<option value="">Add a school first</option>';
+    }
+    const classFilterSelect = document.getElementById("class-school-filter");
+    if (classFilterSelect) {
+      const prevClassFilterVal = classFilterSelect.value;
+      classFilterSelect.innerHTML = '<option value="">All schools</option>' + schoolOptions;
+      classFilterSelect.value = prevClassFilterVal;
+    }
   }
 
   function openEditSchool(id) {
@@ -727,10 +813,15 @@
   });
 
   // ---------- Teachers ----------
+  let cachedTeachers = [];
+  let editingTeacherId = null;
+
+  const GRADE_LABELS = { "-1": "Pre-K", "0": "Kindergarten", "1": "Grade 1", "2": "Grade 2", "3": "Grade 3", "4": "Grade 4", "5": "Grade 5" };
+
   async function loadTeachers() {
     const { data, error } = await client
       .from("accounts")
-      .select("name, email, partner_school_id")
+      .select("id, name, email, partner_school_id, assigned_grade_level")
       .eq("role", "teacher")
       .order("created_at", { ascending: false });
 
@@ -740,28 +831,103 @@
       return;
     }
 
-    cachedTeacherCount = data.length;
+    cachedTeachers = data || [];
+    cachedTeacherCount = cachedTeachers.length;
     document.getElementById("stat-teachers").textContent = cachedTeacherCount;
 
-    listEl.innerHTML = data.length
-      ? data.map(t => {
+    listEl.innerHTML = cachedTeachers.length
+      ? cachedTeachers.map(t => {
           const school = cachedSchools.find(s => s.id === t.partner_school_id);
-          return '<div class="list-item"><span>' + t.name + '</span><span class="meta">' +
-                 (school ? school.name : "") + "</span></div>";
+          const gradeNote = t.assigned_grade_level != null && GRADE_LABELS[String(t.assigned_grade_level)]
+            ? " &middot; " + GRADE_LABELS[String(t.assigned_grade_level)]
+            : "";
+          return '<div class="list-item" style="align-items:center;">' +
+            "<span>" + t.name + "</span>" +
+            '<span style="display:flex; align-items:center; gap:10px;">' +
+              '<span class="meta">' + (school ? school.name : "") + gradeNote + "</span>" +
+              '<button type="button" class="secondary teacher-edit-btn" data-id="' + t.id + '" style="padding:6px 10px; font-size:12px;">Edit</button>' +
+            "</span>" +
+          "</div>";
         }).join("")
       : '<div class="empty-note">No teachers added yet.</div>';
+
+    document.querySelectorAll(".teacher-edit-btn").forEach(btn => {
+      btn.addEventListener("click", () => openEditTeacher(btn.dataset.id));
+    });
   }
+
+  function openEditTeacher(id) {
+    const t = cachedTeachers.find(tc => tc.id === id);
+    if (!t) return;
+    editingTeacherId = id;
+
+    document.getElementById("teacher-name").value = t.name || "";
+    document.getElementById("teacher-grade").value = t.assigned_grade_level != null ? String(t.assigned_grade_level) : "";
+
+    document.getElementById("teacher-account-fields").style.display = "none";
+    document.getElementById("teacher-school").required = false;
+    document.getElementById("teacher-email").required = false;
+    document.getElementById("teacher-password").required = false;
+    document.getElementById("teacher-edit-note").style.display = "block";
+
+    document.getElementById("teacher-form-title").textContent = "Edit teacher";
+    document.getElementById("teacher-submit-btn").textContent = "Save changes";
+    document.getElementById("teacher-cancel-edit-btn").style.display = "inline-flex";
+    clearMsg(document.getElementById("teacher-msg"));
+
+    document.getElementById("teacher-form").scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function exitTeacherEditMode() {
+    editingTeacherId = null;
+    document.getElementById("teacher-form").reset();
+    document.getElementById("teacher-account-fields").style.display = "block";
+    document.getElementById("teacher-school").required = true;
+    document.getElementById("teacher-email").required = true;
+    document.getElementById("teacher-password").required = true;
+    document.getElementById("teacher-edit-note").style.display = "none";
+    document.getElementById("teacher-form-title").textContent = "Add a teacher";
+    document.getElementById("teacher-submit-btn").textContent = "Add teacher";
+    document.getElementById("teacher-cancel-edit-btn").style.display = "none";
+  }
+
+  document.getElementById("teacher-cancel-edit-btn").addEventListener("click", exitTeacherEditMode);
 
   document.getElementById("teacher-form").addEventListener("submit", async (e) => {
     e.preventDefault();
     const msgEl = document.getElementById("teacher-msg");
     clearMsg(msgEl);
-    const submitBtn = e.target.querySelector("button");
+    const submitBtn = document.getElementById("teacher-submit-btn");
+
+    const name = document.getElementById("teacher-name").value.trim();
+    const gradeVal = document.getElementById("teacher-grade").value;
+    const assigned_grade_level = gradeVal === "" ? null : parseInt(gradeVal, 10);
+
+    if (editingTeacherId) {
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Saving...";
+      const { error } = await client
+        .from("accounts")
+        .update({ name, assigned_grade_level })
+        .eq("id", editingTeacherId);
+      submitBtn.disabled = false;
+
+      if (error) {
+        showMsg(msgEl, error.message, "error");
+        submitBtn.textContent = "Save changes";
+        return;
+      }
+
+      showMsg(msgEl, "Teacher updated.", "success");
+      exitTeacherEditMode();
+      await loadTeachers();
+      return;
+    }
+
     submitBtn.disabled = true;
     submitBtn.textContent = "Adding...";
 
     const partner_school_id = document.getElementById("teacher-school").value;
-    const name = document.getElementById("teacher-name").value.trim();
     const email = document.getElementById("teacher-email").value.trim();
     const password = document.getElementById("teacher-password").value;
 
@@ -783,6 +949,11 @@
       if (!resp.ok) {
         showMsg(msgEl, result.error || "Something went wrong creating this teacher.", "error");
         return;
+      }
+
+      // assigned_grade_level isn't part of create_teacher — set it separately if provided.
+      if (assigned_grade_level != null && result.user_id) {
+        await client.from("accounts").update({ assigned_grade_level }).eq("id", result.user_id);
       }
 
       showMsg(msgEl, "Teacher account created. They can log in with the email and password you set.", "success");
@@ -884,6 +1055,155 @@
       submitBtn.disabled = false;
       submitBtn.textContent = "Add administrator";
     }
+  });
+
+  // ---------- Classes ----------
+  let cachedSections = [];
+  let currentRosterSectionId = null;
+
+  async function loadSections() {
+    const { data, error } = await client
+      .from("sections")
+      .select("id, partner_school_id, title, subject, grade_level, term_label, teacher_account_id")
+      .order("created_at", { ascending: false });
+
+    const listEl = document.getElementById("class-list");
+    if (error) {
+      listEl.innerHTML = '<div class="empty-note">Could not load classes: ' + error.message + "</div>";
+      return;
+    }
+
+    cachedSections = data || [];
+    await renderClassList();
+  }
+
+  async function renderClassList() {
+    const listEl = document.getElementById("class-list");
+    const filterVal = document.getElementById("class-school-filter").value;
+    const filtered = filterVal
+      ? cachedSections.filter(s => s.partner_school_id === filterVal)
+      : cachedSections;
+
+    if (!filtered.length) {
+      listEl.innerHTML = '<div class="empty-note">' + (filterVal ? "No classes at this school yet." : "No classes created yet.") + "</div>";
+      return;
+    }
+
+    const sectionIds = filtered.map(s => s.id);
+    const { data: enrollRows } = await client.from("enrollments").select("section_id").in("section_id", sectionIds);
+    const counts = {};
+    (enrollRows || []).forEach(e => { counts[e.section_id] = (counts[e.section_id] || 0) + 1; });
+
+    listEl.innerHTML = filtered.map(s => {
+      const school = cachedSchools.find(sc => sc.id === s.partner_school_id);
+      const teacher = cachedTeachers.find(t => t.id === s.teacher_account_id);
+      const count = counts[s.id] || 0;
+      return '<div class="list-item" style="align-items:center;">' +
+        "<span>" + s.title + '<br><span class="meta">' + s.subject + " &middot; Grade " + s.grade_level +
+          (s.term_label ? " &middot; " + s.term_label : "") + "</span></span>" +
+        '<span style="display:flex; align-items:center; gap:10px;">' +
+          '<span class="meta">' + (teacher ? teacher.name : "Unassigned") + " &middot; " + (school ? school.name : "") +
+            " &middot; " + count + " student" + (count === 1 ? "" : "s") + "</span>" +
+          '<button type="button" class="secondary class-roster-btn" data-id="' + s.id + '" style="padding:6px 10px; font-size:12px;">Manage roster</button>' +
+        "</span>" +
+      "</div>";
+    }).join("");
+
+    document.querySelectorAll(".class-roster-btn").forEach(btn => {
+      btn.addEventListener("click", () => openRoster(btn.dataset.id));
+    });
+  }
+
+  document.getElementById("class-school-filter").addEventListener("change", renderClassList);
+
+  document.getElementById("class-school").addEventListener("change", () => {
+    const schoolId = document.getElementById("class-school").value;
+    const teacherSelect = document.getElementById("class-teacher");
+    const teachersAtSchool = cachedTeachers.filter(t => t.partner_school_id === schoolId);
+    teacherSelect.innerHTML = teachersAtSchool.length
+      ? teachersAtSchool.map(t => '<option value="' + t.id + '">' + t.name + "</option>").join("")
+      : '<option value="">No teachers at this school yet</option>';
+  });
+
+  document.getElementById("class-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const msgEl = document.getElementById("class-msg");
+    clearMsg(msgEl);
+
+    const teacher_account_id = document.getElementById("class-teacher").value;
+    if (!teacher_account_id) {
+      showMsg(msgEl, "Choose a teacher for this class — add one under Teachers first if needed.", "error");
+      return;
+    }
+
+    const payload = {
+      partner_school_id: document.getElementById("class-school").value,
+      teacher_account_id,
+      title: document.getElementById("class-title").value.trim(),
+      subject: document.getElementById("class-subject").value.trim(),
+      grade_level: parseInt(document.getElementById("class-grade").value, 10),
+      term_label: document.getElementById("class-term").value.trim() || null,
+    };
+
+    const { error } = await client.from("sections").insert(payload);
+    if (error) {
+      showMsg(msgEl, error.message, "error");
+      return;
+    }
+
+    showMsg(msgEl, "Class created.", "success");
+    document.getElementById("class-form").reset();
+    await loadSections();
+  });
+
+  async function openRoster(sectionId) {
+    currentRosterSectionId = sectionId;
+    const section = cachedSections.find(s => s.id === sectionId);
+    if (!section) return;
+
+    document.getElementById("roster-title").textContent = "Manage roster — " + section.title;
+
+    const schoolStudents = cachedStudents.filter(s => s.partner_school_id === section.partner_school_id);
+
+    const { data: enrollRows } = await client
+      .from("enrollments")
+      .select("id, student_id")
+      .eq("section_id", sectionId);
+
+    const enrolledSet = new Set((enrollRows || []).map(e => e.student_id));
+
+    const checklistEl = document.getElementById("roster-checklist");
+    checklistEl.innerHTML = schoolStudents.length
+      ? schoolStudents.map(s => {
+          const checked = enrolledSet.has(s.id) ? "checked" : "";
+          return '<label class="checkbox-item"><input type="checkbox" class="roster-checkbox" data-student-id="' + s.id + '" ' + checked + "> " +
+            s.first_name + " " + s.last_name + " (Grade " + s.grade_level + ")</label>";
+        }).join("")
+      : '<div class="empty-note">No students at this school yet.</div>';
+
+    document.querySelectorAll(".roster-checkbox").forEach(box => {
+      box.addEventListener("change", async () => {
+        const studentId = box.dataset.studentId;
+        box.disabled = true;
+        if (box.checked) {
+          const { error } = await client.from("enrollments").insert({ section_id: currentRosterSectionId, student_id: studentId });
+          if (error) { alert("Could not add student: " + error.message); box.checked = false; }
+        } else {
+          const { error } = await client.from("enrollments").delete().eq("section_id", currentRosterSectionId).eq("student_id", studentId);
+          if (error) { alert("Could not remove student: " + error.message); box.checked = true; }
+        }
+        box.disabled = false;
+        await renderClassList();
+      });
+    });
+
+    document.getElementById("roster-panel").style.display = "block";
+    document.getElementById("roster-panel").scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  document.getElementById("roster-close-btn").addEventListener("click", () => {
+    document.getElementById("roster-panel").style.display = "none";
+    currentRosterSectionId = null;
   });
 
   // ---------- Students ----------

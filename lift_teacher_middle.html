@@ -50,7 +50,7 @@
       <div class="workspace-header">
         <div>
           <div class="workspace-header-title">Middle school dashboard</div>
-          <div class="workspace-header-subtitle">Pick the subjects you teach, then enter grades per student</div>
+          <div class="workspace-header-subtitle">Enter grades for the classes assigned to you</div>
         </div>
         <div class="workspace-header-actions">
           <a class="header-link" href="lift_home_teacher.html">Home</a>
@@ -58,30 +58,43 @@
         </div>
       </div>
 
-    <div class="panel">
-      <h3>Which subjects do you teach?</h3>
-      <div class="checkbox-grid" id="subject-picker">
-        <label class="checkbox-item"><input type="checkbox" value="English/Language Arts"> English/Language Arts</label>
-        <label class="checkbox-item"><input type="checkbox" value="Math"> Math</label>
-        <label class="checkbox-item"><input type="checkbox" value="Science"> Science</label>
-        <label class="checkbox-item"><input type="checkbox" value="Social Studies"> Social Studies</label>
-        <label class="checkbox-item"><input type="checkbox" value="Health"> Health</label>
-        <label class="checkbox-item"><input type="checkbox" value="World Language"> World Language</label>
-        <label class="checkbox-item"><input type="checkbox" value="Art"> Art</label>
-        <label class="checkbox-item"><input type="checkbox" value="Physical Education"> Physical Education</label>
-      </div>
+    <div class="panel" id="no-classes-panel" style="display:none;">
+      <div class="empty-note">You don't have any classes assigned yet. Ask your school administrator to create a class and assign you as the teacher, under Classes in the admin dashboard.</div>
+    </div>
+
+    <div class="panel" id="class-picker-panel" style="display:none;">
+      <h3>Your classes</h3>
+      <label for="class-select">Choose a class</label>
+      <select id="class-select"></select>
     </div>
 
     <div class="panel" id="entry-card" style="display:none; margin-top:20px;">
-      <h3>Submit a grade &amp; evaluation</h3>
+      <h3 id="entry-title">Submit a grade &amp; evaluation</h3>
       <form id="grade-form">
         <label for="student-select">Student</label>
         <select id="student-select" required></select>
 
-        <div id="subject-fields"></div>
+        <label for="grade-value">Grade</label>
+        <input type="text" id="grade-value" placeholder="e.g. B+, 88, Proficient" required>
+
+        <label for="evaluation">Written evaluation</label>
+        <textarea id="evaluation" placeholder="Performance, growth areas, engagement..."></textarea>
 
         <label for="comments">Comments for LIFT (optional)</label>
         <textarea id="comments" placeholder="Anything LIFT's evaluator should know about this submission"></textarea>
+
+        <label for="doc-type">Document type</label>
+        <select id="doc-type">
+          <option value="report_card">Report card</option>
+          <option value="assessment">Assessment</option>
+          <option value="writing_sample">Writing sample</option>
+          <option value="portfolio_item">Portfolio item</option>
+          <option value="standardized_test_result">Standardized test result</option>
+          <option value="other">Other</option>
+        </select>
+
+        <label for="doc-file">Attach a file (optional)</label>
+        <input type="file" id="doc-file">
 
         <button type="submit" id="draft-btn" data-action="draft">Save as draft</button>
         <button type="submit" class="secondary" id="submit-btn" data-action="submit">Submit for review</button>
@@ -106,8 +119,8 @@
   const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   let myAccount = null;
-  let cachedStudents = [];
-  let selectedSubjects = [];
+  let cachedSections = [];
+  let currentSectionId = null;
 
   document.getElementById("mobile-menu-btn").addEventListener("click", () => {
     document.getElementById("sidebar").classList.add("open");
@@ -176,62 +189,70 @@
     document.getElementById("gate-wrap").style.display = "none";
     document.getElementById("app-wrap").style.display = "block";
 
-    await loadStudents();
+    await loadSections();
     await loadSubmissions();
   }
 
-  async function loadStudents() {
+  async function loadSections() {
     const { data, error } = await client
-      .from("students")
-      .select("id, first_name, last_name, grade_level")
-      .eq("partner_school_id", myAccount.partner_school_id)
+      .from("sections")
+      .select("id, title, subject, grade_level, term_label")
+      .eq("teacher_account_id", myAccount.id)
       .gte("grade_level", 6)
       .lte("grade_level", 8)
-      .order("last_name");
+      .order("title");
 
-    const select = document.getElementById("student-select");
-    if (error) {
-      select.innerHTML = '<option value="">Could not load students</option>';
+    if (error || !data || data.length === 0) {
+      document.getElementById("no-classes-panel").style.display = "block";
+      document.getElementById("class-picker-panel").style.display = "none";
       return;
     }
 
-    cachedStudents = data || [];
-    select.innerHTML = cachedStudents.length
-      ? cachedStudents.map(s =>
-          '<option value="' + s.id + '">' + s.first_name + " " + s.last_name + " (Grade " + s.grade_level + ")</option>"
-        ).join("")
-      : '<option value="">No middle school students at your school yet</option>';
+    cachedSections = data;
+    document.getElementById("no-classes-panel").style.display = "none";
+    document.getElementById("class-picker-panel").style.display = "block";
+
+    const select = document.getElementById("class-select");
+    select.innerHTML = '<option value="">Choose a class...</option>' + cachedSections.map(s =>
+      '<option value="' + s.id + '">' + s.title + " — " + s.subject + " (Grade " + s.grade_level + ")</option>"
+    ).join("");
   }
 
-  function buildSubjectFields() {
-    const container = document.getElementById("subject-fields");
-    container.innerHTML = selectedSubjects.map((subject) => {
-      const key = subject.toLowerCase().replace(/[^a-z0-9]+/g, "_");
-      return '<div class="subject-block">' +
-        "<h3>" + subject + "</h3>" +
-        '<label for="grade-' + key + '">Grade</label>' +
-        '<input type="text" id="grade-' + key + '" placeholder="e.g. B+, 88, Proficient">' +
-        '<label for="eval-' + key + '">Written evaluation</label>' +
-        '<textarea id="eval-' + key + '" placeholder="Performance, growth areas, engagement..."></textarea>' +
-      "</div>";
-    }).join("");
-  }
+  document.getElementById("class-select").addEventListener("change", async (e) => {
+    const sectionId = e.target.value;
+    currentSectionId = sectionId || null;
+    const entryCard = document.getElementById("entry-card");
 
-  document.querySelectorAll("#subject-picker input[type=checkbox]").forEach(box => {
-    box.addEventListener("change", () => {
-      selectedSubjects = Array.from(
-        document.querySelectorAll("#subject-picker input[type=checkbox]:checked")
-      ).map(b => b.value);
+    if (!sectionId) {
+      entryCard.style.display = "none";
+      return;
+    }
 
-      const entryCard = document.getElementById("entry-card");
-      if (selectedSubjects.length > 0) {
-        buildSubjectFields();
-        entryCard.style.display = "block";
-      } else {
-        entryCard.style.display = "none";
-      }
-    });
+    const section = cachedSections.find(s => s.id === sectionId);
+    document.getElementById("entry-title").textContent = "Submit a grade — " + section.subject;
+    await loadRoster(sectionId);
+    entryCard.style.display = "block";
   });
+
+  async function loadRoster(sectionId) {
+    const { data, error } = await client
+      .from("enrollments")
+      .select("student_id, students(id, first_name, last_name)")
+      .eq("section_id", sectionId);
+
+    const select = document.getElementById("student-select");
+    if (error) {
+      select.innerHTML = '<option value="">Could not load roster</option>';
+      return;
+    }
+
+    const roster = (data || []).map(e => e.students).filter(Boolean)
+      .sort((a, b) => a.last_name.localeCompare(b.last_name));
+
+    select.innerHTML = roster.length
+      ? roster.map(s => '<option value="' + s.id + '">' + s.first_name + " " + s.last_name + "</option>").join("")
+      : '<option value="">No students enrolled in this class yet</option>';
+  }
 
   document.getElementById("grade-form").addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -239,11 +260,12 @@
     clearMsg(msgEl);
 
     const studentId = document.getElementById("student-select").value;
-    if (!studentId) {
-      showMsg(msgEl, "Choose a student first.", "error");
+    if (!studentId || !currentSectionId) {
+      showMsg(msgEl, "Choose a class and student first.", "error");
       return;
     }
 
+    const section = cachedSections.find(s => s.id === currentSectionId);
     const action = e.submitter ? e.submitter.dataset.action : "draft";
     const isSubmit = action === "submit";
     const draftBtn = document.getElementById("draft-btn");
@@ -251,39 +273,72 @@
     draftBtn.disabled = true;
     submitBtn.disabled = true;
 
+    const grade_value = document.getElementById("grade-value").value.trim();
+    const written_evaluation = document.getElementById("evaluation").value.trim();
     const teacher_comments = document.getElementById("comments").value.trim();
-    const status = isSubmit ? "pending_review" : "draft";
-    const submitted_at = isSubmit ? new Date().toISOString() : null;
 
-    const errors = [];
-    for (const subject of selectedSubjects) {
-      const key = subject.toLowerCase().replace(/[^a-z0-9]+/g, "_");
-      const grade_value = document.getElementById("grade-" + key).value.trim();
-      const written_evaluation = document.getElementById("eval-" + key).value.trim();
+    const payload = {
+      student_id: studentId,
+      subject: section.subject,
+      grade_value,
+      written_evaluation,
+      teacher_comments,
+      submitted_by_account_id: myAccount.id,
+      status: isSubmit ? "pending_review" : "draft",
+    };
+    if (isSubmit) payload.submitted_at = new Date().toISOString();
 
-      if (!grade_value && !written_evaluation) continue;
+    const { data: insertedPackage, error } = await client
+      .from("review_packages")
+      .insert(payload)
+      .select()
+      .single();
 
-      const { error } = await client.from("review_packages").insert({
-        student_id: studentId,
-        subject,
-        grade_value,
-        written_evaluation,
-        teacher_comments,
-        submitted_by_account_id: myAccount.id,
-        status,
-        submitted_at,
+    if (error) {
+      draftBtn.disabled = false;
+      submitBtn.disabled = false;
+      showMsg(msgEl, error.message, "error");
+      return;
+    }
+
+    const fileInput = document.getElementById("doc-file");
+    const file = fileInput.files[0];
+
+    if (file) {
+      const docType = document.getElementById("doc-type").value;
+      const filePath = myAccount.partner_school_id + "/" + insertedPackage.id + "/" + Date.now() + "_" + file.name;
+
+      const { error: uploadError } = await client.storage
+        .from("documents")
+        .upload(filePath, file);
+
+      if (uploadError) {
+        draftBtn.disabled = false;
+        submitBtn.disabled = false;
+        showMsg(msgEl, "Grade saved, but the file upload failed: " + uploadError.message, "error");
+        await loadSubmissions();
+        return;
+      }
+
+      const { error: docRowError } = await client.from("documents").insert({
+        review_package_id: insertedPackage.id,
+        document_type: docType,
+        file_path: filePath,
+        file_name: file.name,
+        uploaded_by_account_id: myAccount.id,
       });
 
-      if (error) errors.push(subject + ": " + error.message);
+      if (docRowError) {
+        draftBtn.disabled = false;
+        submitBtn.disabled = false;
+        showMsg(msgEl, "Grade saved, but linking the file failed: " + docRowError.message, "error");
+        await loadSubmissions();
+        return;
+      }
     }
 
     draftBtn.disabled = false;
     submitBtn.disabled = false;
-
-    if (errors.length > 0) {
-      showMsg(msgEl, "Some subjects failed to save — " + errors.join("; "), "error");
-      return;
-    }
 
     showMsg(msgEl, isSubmit ? "Submitted for LIFT review." : "Saved as draft.", "success");
     document.getElementById("grade-form").reset();
@@ -293,7 +348,7 @@
   async function loadSubmissions() {
     const { data, error } = await client
       .from("review_packages")
-      .select("id, subject, grade_value, status, student_id, created_at")
+      .select("id, subject, grade_value, status, created_at, students(first_name, last_name)")
       .eq("submitted_by_account_id", myAccount.id)
       .order("created_at", { ascending: false });
 
@@ -305,8 +360,7 @@
 
     listEl.innerHTML = data.length
       ? data.map(p => {
-          const student = cachedStudents.find(s => s.id === p.student_id);
-          const studentName = student ? student.first_name + " " + student.last_name : "Unknown student";
+          const studentName = p.students ? p.students.first_name + " " + p.students.last_name : "Unknown student";
           return '<div class="list-item">' +
             '<div class="row1"><span>' + studentName + " — " + (p.subject || "") + '</span>' +
             '<span class="status-pill status-' + p.status + '">' + statusLabel(p.status) + "</span></div>" +

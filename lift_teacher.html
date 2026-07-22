@@ -53,7 +53,7 @@
       <div class="workspace-header">
         <div>
           <div class="workspace-header-title" id="section-title">Submit a grade &amp; evaluation</div>
-          <div class="workspace-header-subtitle" id="section-subtitle">Secondary / high school — one subject at a time, per student</div>
+          <div class="workspace-header-subtitle" id="section-subtitle">Secondary / high school — one class at a time, per student</div>
         </div>
         <div class="workspace-header-actions">
           <a class="header-link" href="lift_home_teacher.html">Home</a>
@@ -62,13 +62,21 @@
       </div>
 
     <section data-section-panel="submit">
-    <div class="panel">
+
+    <div class="panel" id="no-classes-panel" style="display:none;">
+      <div class="empty-note">You don't have any classes assigned yet. Ask your school administrator to create a class and assign you as the teacher, under Classes in the admin dashboard.</div>
+    </div>
+
+    <div class="panel" id="class-picker-panel" style="display:none; margin-bottom:20px;">
+      <h3>Your classes</h3>
+      <label for="class-select">Choose a class</label>
+      <select id="class-select"></select>
+    </div>
+
+    <div class="panel" id="entry-card" style="display:none;">
       <form id="grade-form">
         <label for="student-select">Student</label>
         <select id="student-select" required></select>
-
-        <label for="subject">Subject</label>
-        <input type="text" id="subject" placeholder="e.g. Chemistry 1" required>
 
         <label for="grade-value">Grade</label>
         <input type="text" id="grade-value" placeholder="e.g. B+, 87, Secure" required>
@@ -117,10 +125,11 @@
   const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   let myAccount = null;
-  let cachedStudents = [];
+  let cachedSections = [];
+  let currentSectionId = null;
 
   const SECTION_META = {
-    submit: { title: "Submit a grade &amp; evaluation", subtitle: "Secondary / high school — one subject at a time, per student" },
+    submit: { title: "Submit a grade &amp; evaluation", subtitle: "Secondary / high school — one class at a time, per student" },
     submissions: { title: "Your submissions", subtitle: "Everything you've submitted this term" },
   };
 
@@ -211,73 +220,67 @@
     document.getElementById("gate-wrap").style.display = "none";
     document.getElementById("app-wrap").style.display = "block";
 
-    await loadStudents();
+    await loadSections();
     await loadSubmissions();
   }
 
-  async function loadStudents() {
+  async function loadSections() {
     const { data, error } = await client
-      .from("students")
-      .select("id, first_name, last_name, grade_level")
-      .eq("partner_school_id", myAccount.partner_school_id)
+      .from("sections")
+      .select("id, title, subject, grade_level, term_label")
+      .eq("teacher_account_id", myAccount.id)
       .gte("grade_level", 9)
       .lte("grade_level", 12)
-      .order("last_name");
+      .order("title");
+
+    if (error || !data || data.length === 0) {
+      document.getElementById("no-classes-panel").style.display = "block";
+      document.getElementById("class-picker-panel").style.display = "none";
+      return;
+    }
+
+    cachedSections = data;
+    document.getElementById("no-classes-panel").style.display = "none";
+    document.getElementById("class-picker-panel").style.display = "block";
+
+    const select = document.getElementById("class-select");
+    select.innerHTML = '<option value="">Choose a class...</option>' + cachedSections.map(s =>
+      '<option value="' + s.id + '">' + s.title + " — " + s.subject + " (Grade " + s.grade_level + ")</option>"
+    ).join("");
+  }
+
+  document.getElementById("class-select").addEventListener("change", async (e) => {
+    const sectionId = e.target.value;
+    currentSectionId = sectionId || null;
+    const entryCard = document.getElementById("entry-card");
+
+    if (!sectionId) {
+      entryCard.style.display = "none";
+      return;
+    }
+
+    await loadRoster(sectionId);
+    entryCard.style.display = "block";
+  });
+
+  async function loadRoster(sectionId) {
+    const { data, error } = await client
+      .from("enrollments")
+      .select("student_id, students(id, first_name, last_name)")
+      .eq("section_id", sectionId);
 
     const select = document.getElementById("student-select");
     if (error) {
-      select.innerHTML = '<option value="">Could not load students</option>';
+      select.innerHTML = '<option value="">Could not load roster</option>';
       return;
     }
 
-    cachedStudents = data || [];
-    select.innerHTML = cachedStudents.length
-      ? cachedStudents.map(s =>
-          '<option value="' + s.id + '">' + s.first_name + " " + s.last_name + " (Grade " + s.grade_level + ")</option>"
-        ).join("")
-      : '<option value="">No students at your school yet</option>';
-  }
+    const roster = (data || []).map(e => e.students).filter(Boolean)
+      .sort((a, b) => a.last_name.localeCompare(b.last_name));
 
-  async function loadSubmissions() {
-    const { data, error } = await client
-      .from("review_packages")
-      .select("id, subject, grade_value, status, student_id, created_at")
-      .eq("submitted_by_account_id", myAccount.id)
-      .order("created_at", { ascending: false });
-
-    const listEl = document.getElementById("submissions-list");
-    if (error) {
-      listEl.innerHTML = '<div class="empty-note">Could not load submissions: ' + error.message + "</div>";
-      return;
-    }
-
-    const packageIds = (data || []).map(p => p.id);
-    let docCounts = {};
-    if (packageIds.length > 0) {
-      const { data: docs } = await client
-        .from("documents")
-        .select("review_package_id")
-        .in("review_package_id", packageIds);
-      (docs || []).forEach(d => {
-        docCounts[d.review_package_id] = (docCounts[d.review_package_id] || 0) + 1;
-      });
-    }
-
-    listEl.innerHTML = data.length
-      ? data.map(p => {
-          const student = cachedStudents.find(s => s.id === p.student_id);
-          const studentName = student ? student.first_name + " " + student.last_name : "Unknown student";
-          const docCount = docCounts[p.id] || 0;
-          const docNote = docCount > 0
-            ? " &middot; " + docCount + " file" + (docCount > 1 ? "s" : "") + " attached"
-            : " &middot; no files attached";
-          return '<div class="list-item">' +
-            '<div class="row1"><span>' + studentName + " — " + (p.subject || "") + '</span>' +
-            '<span class="status-pill status-' + p.status + '">' + statusLabel(p.status) + "</span></div>" +
-            '<div class="meta">Grade: ' + (p.grade_value || "—") + docNote + "</div>" +
-            "</div>";
-        }).join("")
-      : '<div class="empty-note">No submissions yet.</div>';
+    select.innerHTML = roster.length
+      ? roster.map(s => '<option value="' + s.id + '">' + s.first_name + " " + s.last_name + "</option>").join("")
+      : '<option value="">No students enrolled in this class yet</option>';
   }
 
   document.getElementById("grade-form").addEventListener("submit", async (e) => {
@@ -285,14 +288,19 @@
     const msgEl = document.getElementById("grade-msg");
     clearMsg(msgEl);
 
+    const student_id = document.getElementById("student-select").value;
+    if (!student_id || !currentSectionId) {
+      showMsg(msgEl, "Choose a class and student first.", "error");
+      return;
+    }
+
+    const section = cachedSections.find(s => s.id === currentSectionId);
     const action = e.submitter ? e.submitter.dataset.action : "draft";
     const draftBtn = document.getElementById("draft-btn");
     const submitBtn = document.getElementById("submit-btn");
     draftBtn.disabled = true;
     submitBtn.disabled = true;
 
-    const student_id = document.getElementById("student-select").value;
-    const subject = document.getElementById("subject").value.trim();
     const grade_value = document.getElementById("grade-value").value.trim();
     const written_evaluation = document.getElementById("evaluation").value.trim();
     const teacher_comments = document.getElementById("comments").value.trim();
@@ -301,7 +309,7 @@
 
     const payload = {
       student_id,
-      subject,
+      subject: section.subject,
       grade_value,
       written_evaluation,
       teacher_comments,
@@ -370,6 +378,47 @@
     document.getElementById("grade-form").reset();
     await loadSubmissions();
   });
+
+  async function loadSubmissions() {
+    const { data, error } = await client
+      .from("review_packages")
+      .select("id, subject, grade_value, status, created_at, students(first_name, last_name)")
+      .eq("submitted_by_account_id", myAccount.id)
+      .order("created_at", { ascending: false });
+
+    const listEl = document.getElementById("submissions-list");
+    if (error) {
+      listEl.innerHTML = '<div class="empty-note">Could not load submissions: ' + error.message + "</div>";
+      return;
+    }
+
+    const packageIds = (data || []).map(p => p.id);
+    let docCounts = {};
+    if (packageIds.length > 0) {
+      const { data: docs } = await client
+        .from("documents")
+        .select("review_package_id")
+        .in("review_package_id", packageIds);
+      (docs || []).forEach(d => {
+        docCounts[d.review_package_id] = (docCounts[d.review_package_id] || 0) + 1;
+      });
+    }
+
+    listEl.innerHTML = data.length
+      ? data.map(p => {
+          const studentName = p.students ? p.students.first_name + " " + p.students.last_name : "Unknown student";
+          const docCount = docCounts[p.id] || 0;
+          const docNote = docCount > 0
+            ? " &middot; " + docCount + " file" + (docCount > 1 ? "s" : "") + " attached"
+            : " &middot; no files attached";
+          return '<div class="list-item">' +
+            '<div class="row1"><span>' + studentName + " — " + (p.subject || "") + '</span>' +
+            '<span class="status-pill status-' + p.status + '">' + statusLabel(p.status) + "</span></div>" +
+            '<div class="meta">Grade: ' + (p.grade_value || "—") + docNote + "</div>" +
+            "</div>";
+        }).join("")
+      : '<div class="empty-note">No submissions yet.</div>';
+  }
 
   checkAccess();
 </script>

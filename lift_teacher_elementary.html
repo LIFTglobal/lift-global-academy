@@ -50,7 +50,7 @@
       <div class="workspace-header">
         <div>
           <div class="workspace-header-title">Elementary classroom report</div>
-          <div class="workspace-header-subtitle">All subjects together, per student</div>
+          <div class="workspace-header-subtitle" id="section-subtitle">All subjects together, per student</div>
         </div>
         <div class="workspace-header-actions">
           <a class="header-link" href="lift_home_teacher.html">Home</a>
@@ -58,7 +58,11 @@
         </div>
       </div>
 
-    <div class="panel">
+    <div class="panel" id="no-grade-panel" style="display:none;">
+      <div class="empty-note">You don't have a grade level assigned yet. Ask your school administrator to assign you one under Teachers in the admin dashboard, then come back here.</div>
+    </div>
+
+    <div class="panel" id="student-picker-panel">
       <h3>Select a student</h3>
       <select id="student-select"></select>
     </div>
@@ -69,6 +73,19 @@
 
       <label for="comments">Comments for LIFT (optional)</label>
       <textarea id="comments" placeholder="Anything LIFT's evaluator should know about this student's term"></textarea>
+
+      <label for="doc-type">Document type</label>
+      <select id="doc-type">
+        <option value="report_card">Report card</option>
+        <option value="assessment">Assessment</option>
+        <option value="writing_sample">Writing sample</option>
+        <option value="portfolio_item">Portfolio item</option>
+        <option value="standardized_test_result">Standardized test result</option>
+        <option value="other">Other</option>
+      </select>
+
+      <label for="doc-file">Attach a file (optional)</label>
+      <input type="file" id="doc-file">
 
       <button type="button" id="draft-btn">Save as draft</button>
       <button type="button" class="secondary" id="submit-btn">Submit for review</button>
@@ -93,6 +110,7 @@
 
   // Fixed subject list for all elementary grades, for this first pass.
   const SUBJECTS = ["Reading", "Writing", "Math", "Science", "Social Studies"];
+  const GRADE_LABELS = { "-1": "Pre-K", "0": "Kindergarten", "1": "Grade 1", "2": "Grade 2", "3": "Grade 3", "4": "Grade 4", "5": "Grade 5" };
 
   let myAccount = null;
   let cachedStudents = [];
@@ -142,7 +160,7 @@
     const userId = sessionData.session.user.id;
     const { data: account, error } = await client
       .from("accounts")
-      .select("id, name, role, partner_school_id")
+      .select("id, name, role, partner_school_id, assigned_grade_level")
       .eq("id", userId)
       .single();
 
@@ -164,6 +182,16 @@
     document.getElementById("gate-wrap").style.display = "none";
     document.getElementById("app-wrap").style.display = "block";
 
+    if (account.assigned_grade_level == null) {
+      document.getElementById("no-grade-panel").style.display = "block";
+      document.getElementById("student-picker-panel").style.display = "none";
+      await loadSubmissions();
+      return;
+    }
+
+    document.getElementById("section-subtitle").textContent =
+      GRADE_LABELS[String(account.assigned_grade_level)] + " — all subjects together, per student";
+
     await loadStudents();
     await loadSubmissions();
   }
@@ -173,7 +201,7 @@
       .from("students")
       .select("id, first_name, last_name, grade_level")
       .eq("partner_school_id", myAccount.partner_school_id)
-      .lte("grade_level", 5)
+      .eq("grade_level", myAccount.assigned_grade_level)
       .order("last_name");
 
     const select = document.getElementById("student-select");
@@ -235,6 +263,7 @@
 
     // One review_package per subject, all created together as this student's term report.
     const errors = [];
+    const insertedIds = [];
     for (const subject of SUBJECTS) {
       const key = subject.toLowerCase().replace(/\s+/g, "_");
       const grade_value = document.getElementById("grade-" + key).value.trim();
@@ -243,7 +272,7 @@
       // Skip subjects the teacher left completely blank
       if (!grade_value && !written_evaluation) continue;
 
-      const { error } = await client.from("review_packages").insert({
+      const { data: insertedPackage, error } = await client.from("review_packages").insert({
         student_id: studentId,
         subject,
         grade_value,
@@ -252,16 +281,45 @@
         submitted_by_account_id: myAccount.id,
         status,
         submitted_at,
-      });
+      }).select().single();
 
       if (error) errors.push(subject + ": " + error.message);
+      else insertedIds.push(insertedPackage.id);
+    }
+
+    // If a file was selected, upload it once and link it to every subject package
+    // created for this student's term report.
+    const fileInput = document.getElementById("doc-file");
+    const file = fileInput.files[0];
+
+    if (file && insertedIds.length > 0) {
+      const docType = document.getElementById("doc-type").value;
+      const filePath = myAccount.partner_school_id + "/" + studentId + "/" + Date.now() + "_" + file.name;
+
+      const { error: uploadError } = await client.storage.from("documents").upload(filePath, file);
+
+      if (uploadError) {
+        errors.push("File upload failed: " + uploadError.message);
+      } else {
+        for (const packageId of insertedIds) {
+          const { error: docRowError } = await client.from("documents").insert({
+            review_package_id: packageId,
+            document_type: docType,
+            file_path: filePath,
+            file_name: file.name,
+            uploaded_by_account_id: myAccount.id,
+          });
+          if (docRowError) errors.push("Linking file failed: " + docRowError.message);
+        }
+      }
     }
 
     draftBtn.disabled = false;
     submitBtn.disabled = false;
 
     if (errors.length > 0) {
-      showMsg(msgEl, "Some subjects failed to save — " + errors.join("; "), "error");
+      showMsg(msgEl, "Some parts of the report had errors — " + errors.join("; "), "error");
+      await loadSubmissions();
       return;
     }
 
@@ -269,6 +327,7 @@
     document.getElementById("subjects-card").style.display = "none";
     document.getElementById("student-select").value = "";
     document.getElementById("comments").value = "";
+    document.getElementById("doc-file").value = "";
     await loadSubmissions();
   }
 
