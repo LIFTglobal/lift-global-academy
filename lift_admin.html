@@ -36,6 +36,9 @@
         </div>
       </a>
 
+      <div id="cross-nav"></div>
+      <div class="sidebar-spacer" style="min-height:10px;"></div>
+
       <button type="button" class="sidebar-nav-item active" data-section="schools">
         <span class="sidebar-nav-dot"></span><span class="sidebar-nav-label">Schools</span>
       </button>
@@ -78,8 +81,6 @@
           <div class="workspace-header-subtitle" id="section-subtitle">Manage partner schools and their logos</div>
         </div>
         <div class="workspace-header-actions">
-          <a class="header-link" href="lift_billing.html">Billing</a>
-          <a class="header-link" href="lift_home_evaluator.html">Home</a>
           <button type="button" class="header-link" id="signout-btn">Sign out</button>
         </div>
       </div>
@@ -526,7 +527,7 @@
   };
 
   function switchSection(section) {
-    document.querySelectorAll(".sidebar-nav-item").forEach(item => {
+    document.querySelectorAll(".sidebar-nav-item[data-section]").forEach(item => {
       item.classList.toggle("active", item.dataset.section === section);
     });
     document.querySelectorAll("[data-section-panel]").forEach(panel => {
@@ -537,13 +538,31 @@
     document.getElementById("section-subtitle").textContent = meta.subtitle;
   }
 
-  document.querySelectorAll(".sidebar-nav-item").forEach(item => {
+  document.querySelectorAll(".sidebar-nav-item[data-section]").forEach(item => {
     item.addEventListener("click", () => {
       switchSection(item.dataset.section);
       document.getElementById("sidebar").classList.remove("open");
       document.getElementById("sidebar-backdrop").classList.remove("open");
     });
   });
+
+  // ---------- Cross-page sidebar nav (role-aware) ----------
+  function renderCrossNav() {
+    const el = document.getElementById("cross-nav");
+    if (myAccount.role === "lift_evaluator") {
+      el.innerHTML =
+        '<a class="sidebar-nav-item" href="lift_home_evaluator.html"><span class="sidebar-nav-dot"></span><span class="sidebar-nav-label">Home</span></a>' +
+        '<a class="sidebar-nav-item" href="lift_evaluator.html"><span class="sidebar-nav-dot"></span><span class="sidebar-nav-label">Review queue</span></a>' +
+        '<a class="sidebar-nav-item active" href="lift_admin.html"><span class="sidebar-nav-dot"></span><span class="sidebar-nav-label">Manage schools</span></a>' +
+        '<a class="sidebar-nav-item" href="lift_billing.html"><span class="sidebar-nav-dot"></span><span class="sidebar-nav-label">Billing</span></a>' +
+        '<a class="sidebar-nav-item" href="lift_graduation_progress.html"><span class="sidebar-nav-dot"></span><span class="sidebar-nav-label">Graduation progress</span></a>' +
+        '<a class="sidebar-nav-item" href="lift_transcript.html"><span class="sidebar-nav-dot"></span><span class="sidebar-nav-label">Transcript</span></a>';
+    } else {
+      el.innerHTML =
+        '<a class="sidebar-nav-item active" href="lift_admin.html"><span class="sidebar-nav-dot"></span><span class="sidebar-nav-label">My school</span></a>' +
+        '<a class="sidebar-nav-item" href="lift_billing.html"><span class="sidebar-nav-dot"></span><span class="sidebar-nav-label">Billing</span></a>';
+    }
+  }
 
   function setTheme(dark) {
     document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
@@ -604,6 +623,7 @@
 
     myAccount = account;
     document.getElementById("who-am-i").textContent = account.name + " (" + account.role + ")";
+    renderCrossNav();
     document.getElementById("gate-wrap").style.display = "none";
     document.getElementById("app-wrap").style.display = "block";
 

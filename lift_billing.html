@@ -36,9 +36,7 @@
         </div>
       </a>
 
-      <button type="button" class="sidebar-nav-item active" style="cursor:default;">
-        <span class="sidebar-nav-dot"></span><span class="sidebar-nav-label">Invoices</span>
-      </button>
+      <div id="cross-nav"></div>
 
       <div class="sidebar-spacer"></div>
       <button type="button" class="theme-toggle" id="theme-toggle-btn">
@@ -137,6 +135,24 @@
     window.location.href = "lift_login.html";
   });
 
+  // ---------- Cross-page sidebar nav (role-aware) ----------
+  function renderCrossNav() {
+    const el = document.getElementById("cross-nav");
+    if (myAccount.role === "lift_evaluator") {
+      el.innerHTML =
+        '<a class="sidebar-nav-item" href="lift_home_evaluator.html"><span class="sidebar-nav-dot"></span><span class="sidebar-nav-label">Home</span></a>' +
+        '<a class="sidebar-nav-item" href="lift_evaluator.html"><span class="sidebar-nav-dot"></span><span class="sidebar-nav-label">Review queue</span></a>' +
+        '<a class="sidebar-nav-item" href="lift_admin.html"><span class="sidebar-nav-dot"></span><span class="sidebar-nav-label">Manage schools</span></a>' +
+        '<a class="sidebar-nav-item active" href="lift_billing.html"><span class="sidebar-nav-dot"></span><span class="sidebar-nav-label">Billing</span></a>' +
+        '<a class="sidebar-nav-item" href="lift_graduation_progress.html"><span class="sidebar-nav-dot"></span><span class="sidebar-nav-label">Graduation progress</span></a>' +
+        '<a class="sidebar-nav-item" href="lift_transcript.html"><span class="sidebar-nav-dot"></span><span class="sidebar-nav-label">Transcript</span></a>';
+    } else {
+      el.innerHTML =
+        '<a class="sidebar-nav-item" href="lift_admin.html"><span class="sidebar-nav-dot"></span><span class="sidebar-nav-label">My school</span></a>' +
+        '<a class="sidebar-nav-item active" href="lift_billing.html"><span class="sidebar-nav-dot"></span><span class="sidebar-nav-label">Billing</span></a>';
+    }
+  }
+
   // ---------- Gate: lift_evaluator (all schools) or school_admin (own school only) ----------
   async function checkAccess() {
     const { data: sessionData } = await client.auth.getSession();
@@ -170,6 +186,7 @@
     document.getElementById("who-am-i").textContent = account.name + " (" + account.role + ")";
     document.getElementById("home-link").href = account.role === "lift_evaluator" ? "lift_home_evaluator.html" : "lift_admin.html";
     document.getElementById("home-link").textContent = account.role === "lift_evaluator" ? "Home" : "Admin";
+    renderCrossNav();
     document.getElementById("gate-wrap").style.display = "none";
     document.getElementById("app-wrap").style.display = "block";
 
