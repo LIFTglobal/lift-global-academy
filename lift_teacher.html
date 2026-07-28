@@ -88,6 +88,7 @@
         </div>
         <div class="workspace-header-actions">
           <a class="header-link" href="lift_home_teacher.html">Home</a>
+          <a class="header-link" id="exit-preview-link" href="lift_home_evaluator.html" style="display:none;">Exit preview — Evaluator home</a>
           <button type="button" class="header-link" id="signout-btn">Sign out</button>
         </div>
       </div>
@@ -346,6 +347,7 @@
 
     if (account.role === "lift_evaluator") {
       document.getElementById("preview-bar").style.display = "block";
+      document.getElementById("exit-preview-link").style.display = "inline-flex";
       document.getElementById("who-am-i").textContent = account.name + " — previewing";
       await loadPreviewTeacherOptions();
       return;
