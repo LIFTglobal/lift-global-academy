@@ -92,6 +92,12 @@
         </div>
       </div>
 
+    <div class="panel" id="preview-bar" style="display:none; margin-bottom:20px;">
+      <label for="preview-teacher-select">Previewing as (LIFT staff only)</label>
+      <select id="preview-teacher-select"></select>
+      <div class="hint" style="margin-top:8px;">Pick a teacher account to preview their workspace. Anything you enter here (assignments, scores, attendance, submissions) is saved under that teacher's account, exactly as if they'd entered it.</div>
+    </div>
+
     <section data-section-panel="submit">
 
     <div class="panel" id="no-classes-panel" style="display:none;">
@@ -220,6 +226,7 @@
   const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   let myAccount = null;
+  let signedInAccount = null;
   let cachedSections = [];
   let currentSectionId = null;
 
@@ -327,22 +334,70 @@
       return;
     }
 
-    if (account.role !== "teacher") {
+    if (account.role !== "teacher" && account.role !== "lift_evaluator") {
       document.getElementById("gate").innerHTML =
         "Signed in as " + account.name + ", but this account's role (" + account.role +
         ") isn't a teacher account, so this page isn't relevant.";
       return;
     }
 
-    myAccount = account;
-    applySchoolBranding(account.partner_schools);
-    document.getElementById("who-am-i").textContent = account.name;
+    signedInAccount = account;
     document.getElementById("gate-wrap").style.display = "none";
     document.getElementById("app-wrap").style.display = "block";
 
+    if (account.role === "lift_evaluator") {
+      document.getElementById("preview-bar").style.display = "block";
+      document.getElementById("who-am-i").textContent = account.name + " — previewing";
+      await loadPreviewTeacherOptions();
+      return;
+    }
+
+    myAccount = account;
+    await activateWorkspace();
+  }
+
+  async function activateWorkspace() {
+    applySchoolBranding(myAccount.partner_schools);
+    document.getElementById("who-am-i").textContent = signedInAccount.role === "lift_evaluator"
+      ? signedInAccount.name + " — previewing " + myAccount.name
+      : myAccount.name;
     await loadSections();
     await loadSubmissions();
   }
+
+  async function loadPreviewTeacherOptions() {
+    const { data } = await client
+      .from("accounts")
+      .select("id, name, partner_schools(name)")
+      .eq("role", "teacher")
+      .order("name");
+
+    const sel = document.getElementById("preview-teacher-select");
+    sel.innerHTML = '<option value="">Choose a teacher to preview...</option>' + (data || []).map(t =>
+      '<option value="' + t.id + '">' + t.name + (t.partner_schools ? " — " + t.partner_schools.name : "") + "</option>"
+    ).join("");
+  }
+
+  document.getElementById("preview-teacher-select").addEventListener("change", async (e) => {
+    const teacherId = e.target.value;
+    if (!teacherId) {
+      myAccount = null;
+      document.getElementById("who-am-i").textContent = signedInAccount.name + " — previewing";
+      document.getElementById("no-classes-panel").style.display = "block";
+      document.getElementById("class-picker-panel").style.display = "none";
+      return;
+    }
+
+    const { data: teacherAccount, error } = await client
+      .from("accounts")
+      .select("id, name, role, partner_school_id, partner_schools(name, logo_url, brand_primary_color, brand_secondary_color)")
+      .eq("id", teacherId)
+      .single();
+
+    if (error || !teacherAccount) return;
+    myAccount = teacherAccount;
+    await activateWorkspace();
+  });
 
   async function loadSections() {
     const { data, error } = await client

@@ -92,6 +92,12 @@
         </div>
       </div>
 
+    <div class="panel" id="preview-bar" style="display:none; margin-bottom:20px;">
+      <label for="preview-teacher-select">Previewing as (LIFT staff only)</label>
+      <select id="preview-teacher-select"></select>
+      <div class="hint" style="margin-top:8px;">Pick a teacher account to preview their workspace. Anything you enter here (assignments, scores, attendance, submissions) is saved under that teacher's account, exactly as if they'd entered it.</div>
+    </div>
+
     <section data-section-panel="submit">
 
     <div class="panel" id="no-grade-panel" style="display:none;">
@@ -215,6 +221,7 @@
   const GRADE_LABELS = { "-1": "Pre-K", "0": "Kindergarten", "1": "Grade 1", "2": "Grade 2", "3": "Grade 3", "4": "Grade 4", "5": "Grade 5" };
 
   let myAccount = null;
+  let signedInAccount = null;
   let cachedStudents = [];
 
   const SECTION_META = {
@@ -321,32 +328,56 @@
       return;
     }
 
-    if (account.role !== "teacher") {
+    if (account.role !== "teacher" && account.role !== "lift_evaluator") {
       document.getElementById("gate").innerHTML =
         "Signed in as " + account.name + ", but this account's role (" + account.role +
         ") isn't a teacher account, so this page isn't relevant.";
       return;
     }
 
-    myAccount = account;
-    applySchoolBranding(account.partner_schools);
-    document.getElementById("who-am-i").textContent = account.name;
+    signedInAccount = account;
     document.getElementById("gate-wrap").style.display = "none";
     document.getElementById("app-wrap").style.display = "block";
 
-    if (account.assigned_grade_level == null) {
+    if (account.role === "lift_evaluator") {
+      document.getElementById("preview-bar").style.display = "block";
+      document.getElementById("who-am-i").textContent = account.name + " — previewing";
+      await loadPreviewTeacherOptions();
+      return;
+    }
+
+    myAccount = account;
+    await activateWorkspace();
+  }
+
+  async function activateWorkspace() {
+    applySchoolBranding(myAccount.partner_schools);
+    document.getElementById("who-am-i").textContent = signedInAccount.role === "lift_evaluator"
+      ? signedInAccount.name + " — previewing " + myAccount.name
+      : myAccount.name;
+
+    if (myAccount.assigned_grade_level == null) {
       document.getElementById("no-grade-panel").style.display = "block";
       document.getElementById("student-picker-panel").style.display = "none";
       document.getElementById("gb-no-grade-panel").style.display = "block";
       document.getElementById("gb-subject-picker-panel").style.display = "none";
       document.getElementById("att-no-grade-panel").style.display = "block";
       document.getElementById("att-picker-panel").style.display = "none";
+      document.getElementById("att-grid-panel").style.display = "none";
+      cachedStudents = [];
       await loadSubmissions();
       return;
     }
 
+    document.getElementById("no-grade-panel").style.display = "none";
+    document.getElementById("student-picker-panel").style.display = "block";
+    document.getElementById("gb-no-grade-panel").style.display = "none";
+    document.getElementById("gb-subject-picker-panel").style.display = "block";
+    document.getElementById("att-no-grade-panel").style.display = "none";
+    document.getElementById("att-picker-panel").style.display = "block";
+
     document.getElementById("grade-label-note").textContent =
-      GRADE_LABELS[String(account.assigned_grade_level)] + " — all subjects together, per student";
+      GRADE_LABELS[String(myAccount.assigned_grade_level)] + " — all subjects together, per student";
 
     document.getElementById("gb-subject-select").innerHTML =
       '<option value="">Choose a subject...</option>' + SUBJECTS.map(s => '<option value="' + s + '">' + s + "</option>").join("");
@@ -357,6 +388,45 @@
     await loadAttendance(document.getElementById("att-date").value);
     document.getElementById("att-grid-panel").style.display = "block";
   }
+
+  async function loadPreviewTeacherOptions() {
+    const { data } = await client
+      .from("accounts")
+      .select("id, name, partner_schools(name)")
+      .eq("role", "teacher")
+      .order("name");
+
+    const sel = document.getElementById("preview-teacher-select");
+    sel.innerHTML = '<option value="">Choose a teacher to preview...</option>' + (data || []).map(t =>
+      '<option value="' + t.id + '">' + t.name + (t.partner_schools ? " — " + t.partner_schools.name : "") + "</option>"
+    ).join("");
+  }
+
+  document.getElementById("preview-teacher-select").addEventListener("change", async (e) => {
+    const teacherId = e.target.value;
+    if (!teacherId) {
+      myAccount = null;
+      document.getElementById("who-am-i").textContent = signedInAccount.name + " — previewing";
+      document.getElementById("no-grade-panel").style.display = "none";
+      document.getElementById("student-picker-panel").style.display = "none";
+      document.getElementById("gb-no-grade-panel").style.display = "none";
+      document.getElementById("gb-subject-picker-panel").style.display = "none";
+      document.getElementById("att-no-grade-panel").style.display = "none";
+      document.getElementById("att-picker-panel").style.display = "none";
+      document.getElementById("att-grid-panel").style.display = "none";
+      return;
+    }
+
+    const { data: teacherAccount, error } = await client
+      .from("accounts")
+      .select("id, name, role, partner_school_id, assigned_grade_level, partner_schools(name, logo_url, brand_primary_color, brand_secondary_color)")
+      .eq("id", teacherId)
+      .single();
+
+    if (error || !teacherAccount) return;
+    myAccount = teacherAccount;
+    await activateWorkspace();
+  });
 
   async function loadStudents() {
     const { data, error } = await client

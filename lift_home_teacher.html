@@ -152,14 +152,18 @@
       return;
     }
 
-    if (account.role !== "teacher") {
+    if (account.role !== "teacher" && account.role !== "lift_evaluator") {
       document.getElementById("gate").innerHTML =
         "Signed in as " + account.name + " (" + account.role + "). This home page is for teacher accounts.";
       return;
     }
 
-    applySchoolBranding(account.partner_schools);
-    document.getElementById("who-am-i").textContent = account.name + " — teacher";
+    if (account.role === "lift_evaluator") {
+      document.getElementById("who-am-i").textContent = account.name + " — previewing as teacher";
+    } else {
+      applySchoolBranding(account.partner_schools);
+      document.getElementById("who-am-i").textContent = account.name + " — teacher";
+    }
     document.getElementById("gate-wrap").style.display = "none";
     document.getElementById("app-wrap").style.display = "block";
   }
