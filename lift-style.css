@@ -485,6 +485,27 @@ a.tile.coming-soon { opacity: 0.5; cursor: default; pointer-events: none; }
 .preview-table .term-header td { font-weight: 700; color: var(--text-primary); background: var(--page-bg); padding-top: 14px; }
 .summary-row td { font-weight: 700; }
 
+/* ---------- Gradebook ---------- */
+
+.gb-cat-name-input, .gb-cat-weight-input { display: inline-block; width: auto; margin: 0 6px 0 0; }
+.gb-score-input { text-align: center; }
+
+/* ---------- Attendance status toggle ---------- */
+
+.att-status-btn {
+  background: var(--surface-bg);
+  color: var(--text-secondary);
+  border: 1px solid var(--input-border);
+  font-weight: 600;
+  padding: 6px 12px;
+  font-size: 12px;
+}
+.att-status-btn:hover { background: var(--page-bg); }
+.att-status-btn.active[data-status="present"] { background: var(--green-50); color: var(--green-700); border-color: var(--green-50); }
+.att-status-btn.active[data-status="absent"] { background: var(--red-50); color: var(--red-700); border-color: var(--red-50); }
+.att-status-btn.active[data-status="tardy"] { background: var(--amber-50); color: var(--amber-700); border-color: var(--amber-50); }
+.att-status-btn.active[data-status="excused"] { background: var(--slate-100); color: var(--slate-600); border-color: var(--slate-100); }
+
 /* ---------- Gate / loading ---------- */
 
 .gate {

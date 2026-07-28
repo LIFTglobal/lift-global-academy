@@ -62,6 +62,12 @@
       <button type="button" class="sidebar-nav-item" data-section="submissions">
         <span class="sidebar-nav-dot"></span><span class="sidebar-nav-label">Your submissions</span>
       </button>
+      <button type="button" class="sidebar-nav-item" data-section="gradebook">
+        <span class="sidebar-nav-dot"></span><span class="sidebar-nav-label">Gradebook</span>
+      </button>
+      <button type="button" class="sidebar-nav-item" data-section="attendance">
+        <span class="sidebar-nav-dot"></span><span class="sidebar-nav-label">Attendance</span>
+      </button>
 
       <div class="sidebar-spacer"></div>
       <button type="button" class="theme-toggle" id="theme-toggle-btn">
@@ -138,6 +144,69 @@
     </div>
     </section>
 
+    <section data-section-panel="gradebook" style="display:none;">
+
+    <div class="panel" id="gb-no-classes-panel" style="display:none;">
+      <div class="empty-note">You don't have any classes assigned yet. Ask your school administrator to create a class and assign you as the teacher.</div>
+    </div>
+
+    <div class="panel" id="gb-class-picker-panel" style="margin-bottom:20px;">
+      <label for="gb-class-select">Choose a class</label>
+      <select id="gb-class-select"></select>
+    </div>
+
+    <div id="gb-content" style="display:none;">
+      <div class="panel" id="gb-categories-panel">
+        <h3>Grading categories</h3>
+        <div class="hint" style="margin-top:0;">Weights should add up to 100%. Defaults are provided — adjust as needed for this class.</div>
+        <div id="gb-categories-list"></div>
+        <div id="gb-weight-warning" class="hint" style="display:none;"></div>
+        <form id="gb-add-category-form" style="margin-top:12px; display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap;">
+          <div><label for="gb-cat-name">New category name</label><input type="text" id="gb-cat-name" placeholder="e.g. Projects" required></div>
+          <div><label for="gb-cat-weight">Weight (%)</label><input type="number" id="gb-cat-weight" min="0" max="100" step="1" style="width:90px;" required></div>
+          <button type="submit">Add category</button>
+        </form>
+      </div>
+
+      <div class="panel" id="gb-assignments-panel">
+        <h3>Assignments</h3>
+        <form id="gb-add-assignment-form" style="display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap;">
+          <div><label for="gb-asmt-title">Title</label><input type="text" id="gb-asmt-title" placeholder="e.g. Chapter 4 Quiz" required></div>
+          <div><label for="gb-asmt-category">Category</label><select id="gb-asmt-category" required></select></div>
+          <div><label for="gb-asmt-points">Points possible</label><input type="number" id="gb-asmt-points" min="1" step="1" style="width:100px;" required></div>
+          <div><label for="gb-asmt-due">Due date (optional)</label><input type="date" id="gb-asmt-due"></div>
+          <button type="submit">Add assignment</button>
+        </form>
+        <div class="msg" id="gb-assignment-msg"></div>
+      </div>
+
+      <div class="panel" id="gb-grid-panel">
+        <h3>Scores</h3>
+        <div class="hint" style="margin-top:0;">Enter points earned per assignment. Use "N/A" to exclude an assignment from a student's average.</div>
+        <div style="overflow-x:auto;">
+          <table class="preview-table" id="gb-grid-table"></table>
+        </div>
+      </div>
+    </div>
+    </section>
+
+    <section data-section-panel="attendance" style="display:none;">
+
+    <div class="panel" id="att-no-classes-panel" style="display:none;">
+      <div class="empty-note">You don't have any classes assigned yet.</div>
+    </div>
+
+    <div class="panel" id="att-picker-panel" style="margin-bottom:20px; display:flex; gap:16px; align-items:flex-end; flex-wrap:wrap;">
+      <div><label for="att-class-select">Class</label><select id="att-class-select"></select></div>
+      <div><label for="att-date">Date</label><input type="date" id="att-date"></div>
+    </div>
+
+    <div class="panel" id="att-grid-panel" style="display:none;">
+      <div class="hint" id="att-summary" style="margin-top:0;"></div>
+      <div id="att-list"></div>
+    </div>
+    </section>
+
     </div>
   </div>
 </div>
@@ -156,6 +225,8 @@
   const SECTION_META = {
     submit: { title: "Submit a grade &amp; evaluation", subtitle: "Secondary / high school — one class at a time, per student" },
     submissions: { title: "Your submissions", subtitle: "Everything you've submitted this term" },
+    gradebook: { title: "Gradebook", subtitle: "Track assignments and running grades by class" },
+    attendance: { title: "Attendance", subtitle: "Record daily attendance by class" },
   };
 
   function switchSection(section) {
@@ -284,17 +355,28 @@
     if (error || !data || data.length === 0) {
       document.getElementById("no-classes-panel").style.display = "block";
       document.getElementById("class-picker-panel").style.display = "none";
+      document.getElementById("gb-no-classes-panel").style.display = "block";
+      document.getElementById("gb-class-picker-panel").style.display = "none";
+      document.getElementById("att-no-classes-panel").style.display = "block";
+      document.getElementById("att-picker-panel").style.display = "none";
       return;
     }
 
     cachedSections = data;
     document.getElementById("no-classes-panel").style.display = "none";
     document.getElementById("class-picker-panel").style.display = "block";
+    document.getElementById("gb-no-classes-panel").style.display = "none";
+    document.getElementById("gb-class-picker-panel").style.display = "block";
+    document.getElementById("att-no-classes-panel").style.display = "none";
+    document.getElementById("att-picker-panel").style.display = "block";
 
-    const select = document.getElementById("class-select");
-    select.innerHTML = '<option value="">Choose a class...</option>' + cachedSections.map(s =>
+    const classOptions = '<option value="">Choose a class...</option>' + cachedSections.map(s =>
       '<option value="' + s.id + '">' + s.title + " — " + s.subject + " (Grade " + s.grade_level + ")</option>"
     ).join("");
+    document.getElementById("class-select").innerHTML = classOptions;
+    document.getElementById("gb-class-select").innerHTML = classOptions;
+    document.getElementById("att-class-select").innerHTML = classOptions;
+    document.getElementById("att-date").value = new Date().toISOString().slice(0, 10);
   }
 
   document.getElementById("class-select").addEventListener("change", async (e) => {
@@ -466,6 +548,298 @@
             "</div>";
         }).join("")
       : '<div class="empty-note">No submissions yet.</div>';
+  }
+
+  // ---------- Gradebook ----------
+  let gbSectionId = null;
+  let gbCategories = [];
+  let gbAssignments = [];
+  let gbRoster = [];
+  let gbScores = {};
+
+  const DEFAULT_CATEGORIES = [
+    { name: "Homework", weight_percent: 20 },
+    { name: "Classwork", weight_percent: 20 },
+    { name: "Tests / Quizzes", weight_percent: 30 },
+    { name: "Final / Project", weight_percent: 30 },
+  ];
+
+  document.getElementById("gb-class-select").addEventListener("change", async (e) => {
+    gbSectionId = e.target.value || null;
+    const content = document.getElementById("gb-content");
+    if (!gbSectionId) { content.style.display = "none"; return; }
+    await loadGradebook(gbSectionId);
+    content.style.display = "block";
+  });
+
+  async function ensureDefaultCategories(sectionId) {
+    const { data } = await client.from("grading_categories").select("id").eq("section_id", sectionId).limit(1);
+    if (data && data.length > 0) return;
+    const rows = DEFAULT_CATEGORIES.map((c, i) => ({ section_id: sectionId, name: c.name, weight_percent: c.weight_percent, sort_order: i }));
+    await client.from("grading_categories").insert(rows);
+  }
+
+  async function loadGradebook(sectionId) {
+    await ensureDefaultCategories(sectionId);
+
+    const { data: categories } = await client.from("grading_categories").select("*").eq("section_id", sectionId).order("sort_order");
+    gbCategories = categories || [];
+
+    const { data: assignments } = await client.from("assignments").select("*").eq("section_id", sectionId).order("created_at");
+    gbAssignments = assignments || [];
+
+    const { data: enr } = await client.from("enrollments").select("student_id, students(id, first_name, last_name)").eq("section_id", sectionId);
+    gbRoster = (enr || []).map(e => e.students).filter(Boolean).sort((a, b) => a.last_name.localeCompare(b.last_name));
+
+    const assignmentIds = gbAssignments.map(a => a.id);
+    gbScores = {};
+    if (assignmentIds.length > 0) {
+      const { data: scores } = await client.from("assignment_scores").select("*").in("assignment_id", assignmentIds);
+      (scores || []).forEach(s => {
+        gbScores[s.assignment_id] = gbScores[s.assignment_id] || {};
+        gbScores[s.assignment_id][s.student_id] = s;
+      });
+    }
+
+    renderCategoryList();
+    renderCategorySelect();
+    renderGradebookGrid();
+  }
+
+  function renderCategoryList() {
+    const el = document.getElementById("gb-categories-list");
+    const totalWeight = gbCategories.reduce((sum, c) => sum + Number(c.weight_percent), 0);
+    el.innerHTML = gbCategories.map(c =>
+      '<div class="list-item">' +
+        '<input type="text" class="gb-cat-name-input" data-id="' + c.id + '" value="' + c.name.replace(/"/g, "&quot;") + '">' +
+        '<span><input type="number" class="gb-cat-weight-input" data-id="' + c.id + '" value="' + c.weight_percent + '" min="0" max="100" step="1"> %' +
+        ' <button type="button" class="secondary gb-cat-save-btn" data-id="' + c.id + '" style="padding:6px 10px; font-size:12px;">Save</button>' +
+        ' <button type="button" class="back gb-cat-delete-btn" data-id="' + c.id + '" style="padding:6px 10px; font-size:12px;">Delete</button></span>' +
+      "</div>"
+    ).join("") || '<div class="empty-note">No categories yet.</div>';
+
+    const warnEl = document.getElementById("gb-weight-warning");
+    if (gbCategories.length > 0 && totalWeight !== 100) {
+      warnEl.textContent = "Weights currently add up to " + totalWeight + "%, not 100%.";
+      warnEl.style.display = "block";
+    } else {
+      warnEl.style.display = "none";
+    }
+
+    el.querySelectorAll(".gb-cat-save-btn").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const id = btn.dataset.id;
+        const name = el.querySelector('.gb-cat-name-input[data-id="' + id + '"]').value.trim();
+        const weight_percent = Number(el.querySelector('.gb-cat-weight-input[data-id="' + id + '"]').value);
+        await client.from("grading_categories").update({ name, weight_percent }).eq("id", id);
+        await loadGradebook(gbSectionId);
+      });
+    });
+    el.querySelectorAll(".gb-cat-delete-btn").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        if (!confirm("Delete this category? Assignments in it will also be deleted.")) return;
+        await client.from("grading_categories").delete().eq("id", btn.dataset.id);
+        await loadGradebook(gbSectionId);
+      });
+    });
+  }
+
+  function renderCategorySelect() {
+    const sel = document.getElementById("gb-asmt-category");
+    sel.innerHTML = gbCategories.map(c => '<option value="' + c.id + '">' + c.name + " (" + c.weight_percent + "%)</option>").join("")
+      || '<option value="">Add a category first</option>';
+  }
+
+  document.getElementById("gb-add-category-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (!gbSectionId) return;
+    const name = document.getElementById("gb-cat-name").value.trim();
+    const weight_percent = Number(document.getElementById("gb-cat-weight").value);
+    await client.from("grading_categories").insert({ section_id: gbSectionId, name, weight_percent, sort_order: gbCategories.length });
+    document.getElementById("gb-add-category-form").reset();
+    await loadGradebook(gbSectionId);
+  });
+
+  document.getElementById("gb-add-assignment-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const msgEl = document.getElementById("gb-assignment-msg");
+    clearMsg(msgEl);
+    const category_id = document.getElementById("gb-asmt-category").value;
+    if (!category_id) { showMsg(msgEl, "Add a grading category first.", "error"); return; }
+    const title = document.getElementById("gb-asmt-title").value.trim();
+    const points_possible = Number(document.getElementById("gb-asmt-points").value);
+    const due_date = document.getElementById("gb-asmt-due").value || null;
+    const { error } = await client.from("assignments").insert({ section_id: gbSectionId, category_id, title, points_possible, due_date });
+    if (error) { showMsg(msgEl, error.message, "error"); return; }
+    document.getElementById("gb-add-assignment-form").reset();
+    await loadGradebook(gbSectionId);
+  });
+
+  function computeWeightedAverage(studentId) {
+    const byCategory = {};
+    gbAssignments.forEach(a => { (byCategory[a.category_id] = byCategory[a.category_id] || []).push(a); });
+    let weightedSum = 0, weightTotal = 0;
+    gbCategories.forEach(cat => {
+      const asmts = byCategory[cat.id] || [];
+      let earned = 0, possible = 0, any = false;
+      asmts.forEach(a => {
+        const sc = gbScores[a.id] && gbScores[a.id][studentId];
+        if (sc && !sc.is_excused && sc.points_earned !== null && sc.points_earned !== undefined) {
+          earned += Number(sc.points_earned);
+          possible += Number(a.points_possible);
+          any = true;
+        }
+      });
+      if (any && possible > 0) {
+        weightedSum += (earned / possible) * Number(cat.weight_percent);
+        weightTotal += Number(cat.weight_percent);
+      }
+    });
+    if (weightTotal === 0) return null;
+    return Math.round((weightedSum / weightTotal) * 10) / 10;
+  }
+
+  function renderGradebookGrid() {
+    const table = document.getElementById("gb-grid-table");
+    if (gbRoster.length === 0) {
+      table.innerHTML = '<tr><td class="empty-note">No students enrolled in this class yet.</td></tr>';
+      return;
+    }
+    if (gbAssignments.length === 0) {
+      table.innerHTML = '<tr><td class="empty-note">No assignments yet — add one above.</td></tr>';
+      return;
+    }
+
+    let html = "<thead><tr><th>Student</th>" +
+      gbAssignments.map(a => "<th>" + a.title + '<br><span class="meta">/' + a.points_possible + "</span></th>").join("") +
+      "<th>Average</th><th></th></tr></thead><tbody>";
+
+    gbRoster.forEach(stu => {
+      html += "<tr><td>" + stu.first_name + " " + stu.last_name + "</td>";
+      gbAssignments.forEach(a => {
+        const sc = gbScores[a.id] && gbScores[a.id][stu.id];
+        const val = sc && !sc.is_excused && sc.points_earned !== null && sc.points_earned !== undefined ? sc.points_earned : "";
+        const excused = sc && sc.is_excused;
+        html += "<td>" +
+          '<input type="number" min="0" step="0.5" style="width:64px;" class="gb-score-input" data-assignment-id="' + a.id + '" data-student-id="' + stu.id + '" value="' + val + '"' + (excused ? " disabled" : "") + ">" +
+          '<button type="button" class="back gb-excuse-btn" data-assignment-id="' + a.id + '" data-student-id="' + stu.id + '" style="font-size:11px; padding:4px 8px; margin-left:4px;">' + (excused ? "Unexcuse" : "N/A") + "</button>" +
+          "</td>";
+      });
+      const avg = computeWeightedAverage(stu.id);
+      html += "<td><strong>" + (avg === null ? "—" : avg + "%") + "</strong></td>";
+      html += '<td><button type="button" class="secondary gb-use-avg-btn" data-student-id="' + stu.id + '" data-avg="' + (avg === null ? "" : avg) + '" style="padding:6px 10px; font-size:12px;">Use in submission</button></td>';
+      html += "</tr>";
+    });
+    html += "</tbody>";
+    table.innerHTML = html;
+
+    table.querySelectorAll(".gb-score-input").forEach(input => {
+      input.addEventListener("change", async () => {
+        const assignment_id = input.dataset.assignmentId;
+        const student_id = input.dataset.studentId;
+        const points_earned = input.value === "" ? null : Number(input.value);
+        await client.from("assignment_scores").upsert(
+          { assignment_id, student_id, points_earned, is_excused: false },
+          { onConflict: "assignment_id,student_id" }
+        );
+        await loadGradebook(gbSectionId);
+      });
+    });
+
+    table.querySelectorAll(".gb-excuse-btn").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const assignment_id = btn.dataset.assignmentId;
+        const student_id = btn.dataset.studentId;
+        const sc = gbScores[assignment_id] && gbScores[assignment_id][student_id];
+        const nowExcused = !(sc && sc.is_excused);
+        await client.from("assignment_scores").upsert(
+          { assignment_id, student_id, is_excused: nowExcused, points_earned: nowExcused ? null : (sc ? sc.points_earned : null) },
+          { onConflict: "assignment_id,student_id" }
+        );
+        await loadGradebook(gbSectionId);
+      });
+    });
+
+    table.querySelectorAll(".gb-use-avg-btn").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const avg = btn.dataset.avg;
+        if (avg === "") return;
+        switchSection("submit");
+        currentSectionId = gbSectionId;
+        document.getElementById("class-select").value = gbSectionId;
+        await loadRoster(gbSectionId);
+        document.getElementById("entry-card").style.display = "block";
+        document.getElementById("student-select").value = btn.dataset.studentId;
+        document.getElementById("grade-value").value = avg + "%";
+      });
+    });
+  }
+
+  // ---------- Attendance ----------
+  let attSectionId = null;
+  let attRoster = [];
+  let attRecords = {};
+
+  async function onAttParamsChange() {
+    attSectionId = document.getElementById("att-class-select").value || null;
+    const date = document.getElementById("att-date").value;
+    const gridPanel = document.getElementById("att-grid-panel");
+    if (!attSectionId || !date) { gridPanel.style.display = "none"; return; }
+    await loadAttendance(attSectionId, date);
+    gridPanel.style.display = "block";
+  }
+  document.getElementById("att-class-select").addEventListener("change", onAttParamsChange);
+  document.getElementById("att-date").addEventListener("change", onAttParamsChange);
+
+  async function loadAttendance(sectionId, date) {
+    const { data: enr } = await client.from("enrollments").select("student_id, students(id, first_name, last_name)").eq("section_id", sectionId);
+    attRoster = (enr || []).map(e => e.students).filter(Boolean).sort((a, b) => a.last_name.localeCompare(b.last_name));
+
+    const { data: records } = await client.from("attendance_records").select("*").eq("section_id", sectionId).eq("attendance_date", date);
+    attRecords = {};
+    (records || []).forEach(r => { attRecords[r.student_id] = r; });
+
+    renderAttendanceList();
+  }
+
+  function renderAttendanceList() {
+    const listEl = document.getElementById("att-list");
+    const statuses = ["present", "absent", "tardy", "excused"];
+    const labels = { present: "Present", absent: "Absent", tardy: "Tardy", excused: "Excused" };
+
+    if (attRoster.length === 0) {
+      listEl.innerHTML = '<div class="empty-note">No students enrolled in this class yet.</div>';
+      document.getElementById("att-summary").textContent = "";
+      return;
+    }
+
+    listEl.innerHTML = attRoster.map(stu => {
+      const rec = attRecords[stu.id];
+      return '<div class="list-item"><div>' + stu.first_name + " " + stu.last_name + "</div><div>" +
+        statuses.map(st =>
+          '<button type="button" class="att-status-btn' + (rec && rec.status === st ? " active" : "") + '" data-student-id="' + stu.id + '" data-status="' + st + '" style="margin-left:4px;">' + labels[st] + "</button>"
+        ).join("") + "</div></div>";
+    }).join("");
+
+    const counts = { present: 0, absent: 0, tardy: 0, excused: 0 };
+    Object.values(attRecords).forEach(r => { if (counts[r.status] !== undefined) counts[r.status]++; });
+    document.getElementById("att-summary").textContent =
+      counts.present + " present, " + counts.absent + " absent, " + counts.tardy + " tardy, " + counts.excused + " excused (" +
+      (attRoster.length - Object.keys(attRecords).length) + " not yet marked)";
+
+    listEl.querySelectorAll(".att-status-btn").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const student_id = btn.dataset.studentId;
+        const status = btn.dataset.status;
+        const existing = attRecords[student_id];
+        if (existing) {
+          await client.from("attendance_records").update({ status }).eq("id", existing.id);
+        } else {
+          await client.from("attendance_records").insert({ section_id: attSectionId, student_id, attendance_date: document.getElementById("att-date").value, status });
+        }
+        await loadAttendance(attSectionId, document.getElementById("att-date").value);
+      });
+    });
   }
 
   checkAccess();
