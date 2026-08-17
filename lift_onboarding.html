@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LIFT Global Academy — Onboarding</title>
+<link rel="stylesheet" href="lift-style.css">
+<script>(function(){var t=localStorage.getItem("lift-theme");if(t==="dark")document.documentElement.setAttribute("data-theme","dark");})();</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="page">
+
+<div class="wrap" id="gate-wrap">
+  <div class="card gate" id="gate">
+    <div class="spinner"></div>
+    Checking your session...
+  </div>
+</div>
+
+<div id="app-wrap" style="display:none;">
+  <div class="workspace">
+
+    <div class="mobile-topbar">
+      <button type="button" class="mobile-menu-btn" id="mobile-menu-btn" aria-label="Open menu"><span></span><span></span><span></span></button>
+      <img class="mobile-topbar-logo" src="lift-logo.png" alt="">
+      <div class="mobile-topbar-title">LIFT Global</div>
+    </div>
+    <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+
+    <div class="sidebar" id="sidebar">
+      <a class="sidebar-brand" href="lift_onboarding.html">
+        <img class="sidebar-logo" src="lift-logo.png" alt="LIFT Global Academy logo">
+        <div class="sidebar-brand-text">
+          <div class="sidebar-brand-title">LIFT Global</div>
+          <div class="sidebar-brand-subtitle">Onboarding</div>
+        </div>
+      </a>
+
+      <div id="cross-nav"></div>
+
+      <div class="sidebar-school-badge" id="sidebar-school-badge" style="display:none;">
+        <img class="sidebar-school-logo" id="sidebar-school-logo" src="" alt="">
+        <div style="overflow:hidden;">
+          <div class="sidebar-school-name" id="sidebar-school-name"></div>
+          <div class="sidebar-school-label" id="sidebar-school-label" style="color:var(--sidebar-dot);">Partner school</div>
+        </div>
+      </div>
+
+      <div class="sidebar-spacer"></div>
+      <button type="button" class="theme-toggle" id="theme-toggle-btn">
+        <span class="theme-toggle-label">Dark mode</span>
+        <span class="theme-toggle-switch" id="theme-toggle-switch"><span class="theme-toggle-knob"></span></span>
+      </button>
+      <button type="button" class="sidebar-collapse-toggle" id="sidebar-collapse-btn">
+        <span class="chevron"></span><span>Collapse</span>
+      </button>
+      <div class="sidebar-footer">Signed in as<strong id="who-am-i"></strong></div>
+    </div>
+
+    <div class="workspace-main">
+      <div class="workspace-header">
+        <div>
+          <div class="workspace-header-title">Onboarding</div>
+          <div class="workspace-header-subtitle">Sign documents and complete tasks to finish setting up your school</div>
+        </div>
+        <div class="workspace-header-actions">
+          <button type="button" class="header-link" id="signout-btn">Sign out</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="hint" style="margin-top:0;" id="progress-summary"></div>
+      </div>
+
+      <div class="section-label">Documents to sign</div>
+      <div id="document-list"></div>
+
+      <div class="section-label">Tasks</div>
+      <div class="panel">
+        <div id="task-list"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+  const SUPABASE_URL = "https://ojmqlvtyygvethwrdqon.supabase.co";
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9qbXFsdnR5eWd2ZXRod3JkcW9uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0MzEyMTQsImV4cCI6MjA5ODAwNzIxNH0.IWLrhtb4w_dq-_pjW1wzRAX6-0qI4Hmwtp5p_cSSVWM";
+
+  const { createClient } = supabase;
+  const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  function showMsg(el, text, type) {
+    el.textContent = text;
+    el.className = "msg " + type;
+    el.style.display = "block";
+  }
+  function clearMsg(el) { el.style.display = "none"; }
+
+  let myAccount = null;
+  let cachedDocuments = [];
+  let cachedTasks = [];
+
+  document.getElementById("mobile-menu-btn").addEventListener("click", () => {
+    document.getElementById("sidebar").classList.add("open");
+    document.getElementById("sidebar-backdrop").classList.add("open");
+  });
+  document.getElementById("sidebar-backdrop").addEventListener("click", () => {
+    document.getElementById("sidebar").classList.remove("open");
+    document.getElementById("sidebar-backdrop").classList.remove("open");
+  });
+
+  function setTheme(dark) {
+    document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
+    document.getElementById("theme-toggle-switch").classList.toggle("on", dark);
+    localStorage.setItem("lift-theme", dark ? "dark" : "light");
+  }
+  document.getElementById("theme-toggle-btn").addEventListener("click", () => {
+    setTheme(document.documentElement.getAttribute("data-theme") !== "dark");
+  });
+  setTheme(document.documentElement.getAttribute("data-theme") === "dark");
+
+  document.getElementById("sidebar-collapse-btn").addEventListener("click", () => {
+    document.getElementById("sidebar").classList.toggle("collapsed");
+  });
+
+  document.getElementById("signout-btn").addEventListener("click", async () => {
+    await client.auth.signOut();
+    window.location.href = "lift_login.html";
+  });
+
+  function applySchoolBranding(school) {
+    if (!school) return;
+    const sidebar = document.getElementById("sidebar");
+    if (school.brand_primary_color) sidebar.style.background = school.brand_primary_color;
+    if (school.brand_secondary_color) sidebar.style.setProperty("--sidebar-dot", school.brand_secondary_color);
+    if (school.name) {
+      document.getElementById("sidebar-school-name").textContent = school.name;
+      document.getElementById("sidebar-school-badge").style.display = "flex";
+    }
+    document.getElementById("sidebar-school-logo").src = school.logo_url || "lift-logo.png";
+  }
+
+  function renderCrossNav() {
+    document.getElementById("cross-nav").innerHTML =
+      '<a class="sidebar-nav-item" href="lift_admin.html"><span class="sidebar-nav-dot"></span><span class="sidebar-nav-label">My school</span></a>' +
+      '<a class="sidebar-nav-item" href="lift_billing.html"><span class="sidebar-nav-dot"></span><span class="sidebar-nav-label">Billing</span></a>' +
+      '<a class="sidebar-nav-item active" href="lift_onboarding.html"><span class="sidebar-nav-dot"></span><span class="sidebar-nav-label">Onboarding</span></a>';
+  }
+
+  async function checkAccess() {
+    const { data: sessionData } = await client.auth.getSession();
+    if (!sessionData.session) {
+      document.getElementById("gate").innerHTML =
+        "You're not signed in. Sign in through the LIFT login page first, then come back to this page.";
+      return;
+    }
+
+    const userId = sessionData.session.user.id;
+    const { data: account, error } = await client
+      .from("accounts")
+      .select("id, name, role, partner_school_id, partner_schools(name, logo_url, brand_primary_color, brand_secondary_color)")
+      .eq("id", userId)
+      .single();
+
+    if (error || !account) {
+      document.getElementById("gate").innerHTML =
+        "Signed in, but no matching accounts row was found for this user.";
+      return;
+    }
+
+    if (account.role !== "school_admin") {
+      document.getElementById("gate").innerHTML =
+        "Signed in as " + account.name + ", but this account's role (" + account.role +
+        ") doesn't have access to onboarding.";
+      return;
+    }
+
+    myAccount = account;
+    applySchoolBranding(account.partner_schools);
+    document.getElementById("who-am-i").textContent = account.name + " (school admin)";
+    renderCrossNav();
+    document.getElementById("gate-wrap").style.display = "none";
+    document.getElementById("app-wrap").style.display = "block";
+
+    await loadDocuments();
+    await loadTasks();
+    updateProgressSummary();
+  }
+
+  function updateProgressSummary() {
+    const signedCount = cachedDocuments.filter(d => d.status === "completed").length;
+    const doneCount = cachedTasks.filter(t => t.status === "completed").length;
+    document.getElementById("progress-summary").textContent =
+      signedCount + " of " + cachedDocuments.length + " documents signed · " +
+      doneCount + " of " + cachedTasks.length + " tasks complete";
+  }
+
+  // ---------- Documents ----------
+  async function loadDocuments() {
+    const { data, error } = await client
+      .from("onboarding_documents")
+      .select("*")
+      .eq("partner_school_id", myAccount.partner_school_id)
+      .order("sort_order");
+
+    const listEl = document.getElementById("document-list");
+    if (error) {
+      listEl.innerHTML = '<div class="panel"><div class="empty-note">Could not load documents: ' + error.message + "</div></div>";
+      return;
+    }
+
+    cachedDocuments = data || [];
+
+    if (cachedDocuments.length === 0) {
+      listEl.innerHTML = '<div class="panel"><div class="empty-note">Nothing to sign yet.</div></div>';
+      return;
+    }
+
+    const cards = await Promise.all(cachedDocuments.map(renderDocumentCard));
+    listEl.innerHTML = cards.join("");
+    wireDocumentHandlers();
+  }
+
+  async function renderDocumentCard(d) {
+    let fileLinkHtml = "";
+    if (d.file_path) {
+      const { data: signedUrlData } = await client.storage.from("onboarding-documents").createSignedUrl(d.file_path, 3600);
+      if (signedUrlData && signedUrlData.signedUrl) {
+        fileLinkHtml = '<a href="' + signedUrlData.signedUrl + '" target="_blank" rel="noopener">View ' + (d.file_name || "document") + "</a>";
+      }
+    }
+
+    if (d.status === "completed") {
+      return '<div class="panel" style="margin-bottom:14px;">' +
+        '<div class="row1"><span style="font-weight:600;">' + d.title + "</span>" +
+        '<span class="status-pill status-approved">Signed</span></div>' +
+        (d.description ? '<div class="meta" style="margin:6px 0;">' + d.description + "</div>" : "") +
+        (fileLinkHtml ? '<div style="margin:6px 0;">' + fileLinkHtml + "</div>" : "") +
+        '<div class="meta" style="margin-top:8px;">Signed by ' + d.signer_name + " on " + new Date(d.signed_at).toLocaleDateString() + "</div>" +
+        "</div>";
+    }
+
+    return '<div class="panel" style="margin-bottom:14px;">' +
+      '<div class="row1"><span style="font-weight:600;">' + d.title + "</span>" +
+      '<span class="status-pill status-pending_review">Pending</span></div>' +
+      (d.description ? '<div class="meta" style="margin:6px 0;">' + d.description + "</div>" : "") +
+      (fileLinkHtml ? '<div style="margin:6px 0;">' + fileLinkHtml + "</div>" : "") +
+      '<div style="margin-top:10px;">' +
+        '<label class="checkbox-item"><input type="checkbox" class="doc-agree-cb" data-id="' + d.id + '"> ' +
+        (d.requires_signature ? "I have read and agree to this document" : "I have read this document") + "</label>" +
+        '<label for="signer-' + d.id + '">Type your full legal name</label>' +
+        '<input type="text" id="signer-' + d.id + '" class="doc-signer-name" data-id="' + d.id + '" placeholder="Full legal name">' +
+        '<button type="button" class="doc-sign-btn" data-id="' + d.id + '" style="margin-top:12px;">' + (d.requires_signature ? "Sign" : "Acknowledge") + "</button>" +
+        '<div class="msg" id="doc-msg-' + d.id + '"></div>' +
+      "</div></div>";
+  }
+
+  function wireDocumentHandlers() {
+    document.querySelectorAll(".doc-sign-btn").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const id = btn.dataset.id;
+        const agreeCb = document.querySelector('.doc-agree-cb[data-id="' + id + '"]');
+        const nameInput = document.querySelector('.doc-signer-name[data-id="' + id + '"]');
+        const msgEl = document.getElementById("doc-msg-" + id);
+        clearMsg(msgEl);
+
+        if (!agreeCb.checked) {
+          showMsg(msgEl, "Check the box to confirm before continuing.", "error");
+          return;
+        }
+        const signerName = nameInput.value.trim();
+        if (!signerName) {
+          showMsg(msgEl, "Type your full legal name.", "error");
+          return;
+        }
+
+        btn.disabled = true;
+        const { error } = await client.from("onboarding_documents").update({
+          status: "completed",
+          signer_name: signerName,
+          signed_at: new Date().toISOString(),
+          completed_by_account_id: myAccount.id,
+        }).eq("id", id);
+
+        if (error) {
+          btn.disabled = false;
+          showMsg(msgEl, error.message, "error");
+          return;
+        }
+
+        await loadDocuments();
+        updateProgressSummary();
+      });
+    });
+  }
+
+  // ---------- Tasks ----------
+  async function loadTasks() {
+    const { data, error } = await client
+      .from("onboarding_tasks")
+      .select("*")
+      .eq("partner_school_id", myAccount.partner_school_id)
+      .order("sort_order");
+
+    const listEl = document.getElementById("task-list");
+    if (error) {
+      listEl.innerHTML = '<div class="empty-note">Could not load tasks: ' + error.message + "</div>";
+      return;
+    }
+
+    cachedTasks = data || [];
+
+    listEl.innerHTML = cachedTasks.length
+      ? cachedTasks.map(t => {
+          const pill = t.status === "completed"
+            ? '<span class="status-pill status-approved">Completed</span>'
+            : '<span class="status-pill status-pending_review">Pending</span>';
+          const detailParts = [];
+          if (t.description) detailParts.push(t.description);
+          if (t.due_date) detailParts.push("Due " + new Date(t.due_date).toLocaleDateString());
+          if (t.status === "completed") detailParts.push("Completed " + new Date(t.completed_at).toLocaleDateString());
+          const actionBtn = t.status === "completed"
+            ? '<button type="button" class="secondary task-undo-btn" data-id="' + t.id + '" style="padding:6px 10px; font-size:12px;">Mark not done</button>'
+            : '<button type="button" class="task-complete-btn" data-id="' + t.id + '" style="padding:6px 10px; font-size:12px;">Mark complete</button>';
+          return '<div class="list-item">' +
+            '<div><div style="font-weight:600;">' + t.title + "</div>" +
+            (detailParts.length ? '<div class="meta">' + detailParts.join(" &middot; ") + "</div>" : "") + "</div>" +
+            '<span style="display:flex; align-items:center; gap:8px;">' + pill + actionBtn + "</span>" +
+            "</div>";
+        }).join("")
+      : '<div class="empty-note">No tasks yet.</div>';
+
+    document.querySelectorAll(".task-complete-btn").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const { error } = await client.from("onboarding_tasks").update({
+          status: "completed", completed_at: new Date().toISOString(), completed_by_account_id: myAccount.id,
+        }).eq("id", btn.dataset.id);
+        if (error) { alert("Could not update: " + error.message); return; }
+        await loadTasks();
+        updateProgressSummary();
+      });
+    });
+
+    document.querySelectorAll(".task-undo-btn").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const { error } = await client.from("onboarding_tasks").update({
+          status: "pending", completed_at: null, completed_by_account_id: null,
+        }).eq("id", btn.dataset.id);
+        if (error) { alert("Could not update: " + error.message); return; }
+        await loadTasks();
+        updateProgressSummary();
+      });
+    });
+  }
+
+  checkAccess();
+</script>
+
+</body>
+</html>

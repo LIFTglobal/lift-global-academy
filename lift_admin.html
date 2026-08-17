@@ -57,6 +57,9 @@
       <button type="button" class="sidebar-nav-item" data-section="history">
         <span class="sidebar-nav-dot"></span><span class="sidebar-nav-label">School history</span>
       </button>
+      <button type="button" class="sidebar-nav-item" data-section="onboarding" id="onboarding-nav-btn" style="display:none;">
+        <span class="sidebar-nav-dot"></span><span class="sidebar-nav-label">Onboarding</span>
+      </button>
 
       <div class="sidebar-spacer"></div>
 
@@ -527,6 +530,71 @@
         </div>
       </section>
 
+      <!-- ---------- Onboarding (LIFT staff only) ---------- -->
+      <section class="fade-in" id="section-onboarding" data-section-panel="onboarding" style="display:none;">
+
+        <div class="panel">
+          <h3>Document templates</h3>
+          <div class="hint" style="margin-top:0;">Your reusable onboarding packet — upload once, then assign to any new school. Editing a template later doesn't change documents already assigned to a school.</div>
+          <div id="doc-template-list" style="margin:16px 0;"></div>
+
+          <form id="doc-template-form">
+            <label for="dt-title">Title</label>
+            <input type="text" id="dt-title" required placeholder="e.g. Partnership Agreement">
+
+            <label for="dt-description">Description (optional)</label>
+            <textarea id="dt-description" placeholder="What this document is and why the school needs it"></textarea>
+
+            <label class="checkbox-item"><input type="checkbox" id="dt-requires-signature" checked> Requires a signature (uncheck for read-only acknowledgment)</label>
+
+            <label for="dt-file">File (optional — can be added later)</label>
+            <input type="file" id="dt-file">
+
+            <button type="submit" style="margin-top:16px;">Add document template</button>
+          </form>
+          <div class="msg" id="doc-template-msg"></div>
+        </div>
+
+        <div class="panel" style="margin-top:20px;">
+          <h3>Task templates</h3>
+          <div class="hint" style="margin-top:0;">Non-document to-dos, e.g. "Schedule an orientation call."</div>
+          <div id="task-template-list" style="margin:16px 0;"></div>
+
+          <form id="task-template-form">
+            <label for="tt-title">Title</label>
+            <input type="text" id="tt-title" required placeholder="e.g. Schedule orientation call">
+
+            <label for="tt-description">Description (optional)</label>
+            <textarea id="tt-description" placeholder="Details about this task"></textarea>
+
+            <button type="submit" style="margin-top:16px;">Add task template</button>
+          </form>
+          <div class="msg" id="task-template-msg"></div>
+        </div>
+
+        <div class="panel" style="margin-top:20px;">
+          <h3>Assign &amp; track by school</h3>
+          <label for="onboard-school-select">School</label>
+          <select id="onboard-school-select"></select>
+
+          <div id="onboard-content" style="display:none; margin-top:16px;">
+            <div class="section-label" style="margin-top:0;">Assign templates to this school</div>
+            <div id="onboard-assign-list"></div>
+            <button type="button" id="onboard-assign-btn" class="secondary" style="margin-top:12px;">Assign selected</button>
+            <div class="msg" id="onboard-assign-msg"></div>
+
+            <div class="section-label">Progress</div>
+            <div class="hint" id="onboard-progress-summary" style="margin-top:0;"></div>
+
+            <h3 style="margin-top:18px;">Documents</h3>
+            <div id="onboard-doc-list"></div>
+
+            <h3 style="margin-top:18px;">Tasks</h3>
+            <div id="onboard-task-list"></div>
+          </div>
+        </div>
+      </section>
+
     </div>
   </div>
 </div>
@@ -564,6 +632,7 @@
     classes: { title: "Classes", subtitle: "Middle/high school classes and their rosters" },
     students: { title: "Students", subtitle: "Enrolled students across all partner schools" },
     history: { title: "School history", subtitle: "Prior-school records used to build transcripts" },
+    onboarding: { title: "Onboarding", subtitle: "Manage onboarding documents & tasks, assign to schools, track progress" },
   };
 
   function switchSection(section) {
@@ -600,7 +669,8 @@
     } else {
       el.innerHTML =
         '<a class="sidebar-nav-item active" href="lift_admin.html"><span class="sidebar-nav-dot"></span><span class="sidebar-nav-label">My school</span></a>' +
-        '<a class="sidebar-nav-item" href="lift_billing.html"><span class="sidebar-nav-dot"></span><span class="sidebar-nav-label">Billing</span></a>';
+        '<a class="sidebar-nav-item" href="lift_billing.html"><span class="sidebar-nav-dot"></span><span class="sidebar-nav-label">Billing</span></a>' +
+        '<a class="sidebar-nav-item" href="lift_onboarding.html"><span class="sidebar-nav-dot"></span><span class="sidebar-nav-label">Onboarding</span></a>';
     }
   }
 
@@ -670,6 +740,9 @@
     if (account.role === "lift_evaluator") {
       document.getElementById("credit-panel-wrap").style.display = "block";
       await loadRequirementCategoriesForCredits();
+      document.getElementById("onboarding-nav-btn").style.display = "flex";
+      await loadDocTemplates();
+      await loadTaskTemplates();
     }
 
     await loadSchools();
@@ -807,6 +880,11 @@
       const prevClassFilterVal = classFilterSelect.value;
       classFilterSelect.innerHTML = '<option value="">All schools</option>' + schoolOptions;
       classFilterSelect.value = prevClassFilterVal;
+    }
+
+    const onboardSelect = document.getElementById("onboard-school-select");
+    if (onboardSelect) {
+      onboardSelect.innerHTML = '<option value="">Choose a school...</option>' + schoolOptions;
     }
   }
 
@@ -1640,6 +1718,290 @@
     document.getElementById("credit-form").reset();
     await loadCreditsForStudent(studentId);
   });
+
+  // ---------- Onboarding: template library (LIFT staff only) ----------
+  let cachedDocTemplates = [];
+  let cachedTaskTemplates = [];
+  let onboardSchoolId = null;
+  let cachedOnboardDocs = [];
+  let cachedOnboardTasks = [];
+
+  async function loadDocTemplates() {
+    const { data, error } = await client.from("onboarding_document_templates").select("*").order("sort_order");
+    const listEl = document.getElementById("doc-template-list");
+    if (error) {
+      listEl.innerHTML = '<div class="empty-note">Could not load document templates: ' + error.message + "</div>";
+      return;
+    }
+
+    cachedDocTemplates = data || [];
+
+    listEl.innerHTML = cachedDocTemplates.length
+      ? cachedDocTemplates.map(t => {
+          const sigNote = t.requires_signature ? "Requires signature" : "Acknowledgment only";
+          const fileNote = t.file_name ? t.file_name : "No file attached yet";
+          return '<div class="list-item">' +
+            '<div><div style="font-weight:600;">' + t.title + "</div>" +
+            '<div class="meta">' + sigNote + " &middot; " + fileNote + "</div></div>" +
+            '<button type="button" class="back doc-template-delete-btn" data-id="' + t.id + '" style="padding:6px 10px; font-size:12px;">Delete</button>' +
+            "</div>";
+        }).join("")
+      : '<div class="empty-note">No document templates yet.</div>';
+
+    document.querySelectorAll(".doc-template-delete-btn").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        if (!confirm("Delete this document template? Schools it was already assigned to keep their copy.")) return;
+        const { error: deleteError } = await client.from("onboarding_document_templates").delete().eq("id", btn.dataset.id);
+        if (deleteError) { alert("Could not delete: " + deleteError.message); return; }
+        await loadDocTemplates();
+        if (onboardSchoolId) await renderOnboardAssignList();
+      });
+    });
+
+    if (onboardSchoolId) await renderOnboardAssignList();
+  }
+
+  document.getElementById("doc-template-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const msgEl = document.getElementById("doc-template-msg");
+    clearMsg(msgEl);
+
+    const title = document.getElementById("dt-title").value.trim();
+    const description = document.getElementById("dt-description").value.trim() || null;
+    const requires_signature = document.getElementById("dt-requires-signature").checked;
+    const file = document.getElementById("dt-file").files[0];
+
+    let file_path = null;
+    let file_name = null;
+
+    if (file) {
+      file_path = "templates/" + Date.now() + "_" + file.name;
+      const { error: uploadError } = await client.storage.from("onboarding-documents").upload(file_path, file);
+      if (uploadError) {
+        showMsg(msgEl, "Could not upload file: " + uploadError.message, "error");
+        return;
+      }
+      file_name = file.name;
+    }
+
+    const { error } = await client.from("onboarding_document_templates").insert({
+      title, description, requires_signature, file_path, file_name,
+      sort_order: cachedDocTemplates.length,
+      created_by: myAccount.id,
+    });
+
+    if (error) {
+      showMsg(msgEl, error.message, "error");
+      return;
+    }
+
+    showMsg(msgEl, "Document template added.", "success");
+    document.getElementById("doc-template-form").reset();
+    document.getElementById("dt-requires-signature").checked = true;
+    await loadDocTemplates();
+  });
+
+  async function loadTaskTemplates() {
+    const { data, error } = await client.from("onboarding_task_templates").select("*").order("sort_order");
+    const listEl = document.getElementById("task-template-list");
+    if (error) {
+      listEl.innerHTML = '<div class="empty-note">Could not load task templates: ' + error.message + "</div>";
+      return;
+    }
+
+    cachedTaskTemplates = data || [];
+
+    listEl.innerHTML = cachedTaskTemplates.length
+      ? cachedTaskTemplates.map(t =>
+          '<div class="list-item">' +
+            '<div><div style="font-weight:600;">' + t.title + "</div>" +
+            (t.description ? '<div class="meta">' + t.description + "</div>" : "") + "</div>" +
+            '<button type="button" class="back task-template-delete-btn" data-id="' + t.id + '" style="padding:6px 10px; font-size:12px;">Delete</button>' +
+          "</div>"
+        ).join("")
+      : '<div class="empty-note">No task templates yet.</div>';
+
+    document.querySelectorAll(".task-template-delete-btn").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        if (!confirm("Delete this task template? Schools it was already assigned to keep their copy.")) return;
+        const { error: deleteError } = await client.from("onboarding_task_templates").delete().eq("id", btn.dataset.id);
+        if (deleteError) { alert("Could not delete: " + deleteError.message); return; }
+        await loadTaskTemplates();
+        if (onboardSchoolId) await renderOnboardAssignList();
+      });
+    });
+
+    if (onboardSchoolId) await renderOnboardAssignList();
+  }
+
+  document.getElementById("task-template-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const msgEl = document.getElementById("task-template-msg");
+    clearMsg(msgEl);
+
+    const title = document.getElementById("tt-title").value.trim();
+    const description = document.getElementById("tt-description").value.trim() || null;
+
+    const { error } = await client.from("onboarding_task_templates").insert({
+      title, description, sort_order: cachedTaskTemplates.length, created_by: myAccount.id,
+    });
+
+    if (error) {
+      showMsg(msgEl, error.message, "error");
+      return;
+    }
+
+    showMsg(msgEl, "Task template added.", "success");
+    document.getElementById("task-template-form").reset();
+    await loadTaskTemplates();
+  });
+
+  // ---------- Onboarding: assign & track by school ----------
+  document.getElementById("onboard-school-select").addEventListener("change", async (e) => {
+    onboardSchoolId = e.target.value || null;
+    const contentEl = document.getElementById("onboard-content");
+    if (!onboardSchoolId) { contentEl.style.display = "none"; return; }
+    contentEl.style.display = "block";
+    await loadOnboardingForSchool(onboardSchoolId);
+  });
+
+  async function loadOnboardingForSchool(schoolId) {
+    const { data: docs } = await client.from("onboarding_documents").select("*").eq("partner_school_id", schoolId).order("sort_order");
+    cachedOnboardDocs = docs || [];
+
+    const { data: tasks } = await client.from("onboarding_tasks").select("*").eq("partner_school_id", schoolId).order("sort_order");
+    cachedOnboardTasks = tasks || [];
+
+    await renderOnboardAssignList();
+    renderOnboardProgress();
+  }
+
+  async function renderOnboardAssignList() {
+    const wrap = document.getElementById("onboard-assign-list");
+    const assignedDocTemplateIds = new Set(cachedOnboardDocs.map(d => d.template_id).filter(Boolean));
+    const assignedTaskTemplateIds = new Set(cachedOnboardTasks.map(t => t.template_id).filter(Boolean));
+
+    const availableDocs = cachedDocTemplates.filter(t => !assignedDocTemplateIds.has(t.id));
+    const availableTasks = cachedTaskTemplates.filter(t => !assignedTaskTemplateIds.has(t.id));
+
+    if (availableDocs.length === 0 && availableTasks.length === 0) {
+      wrap.innerHTML = '<div class="empty-note">Everything in your template library is already assigned to this school.</div>';
+      return;
+    }
+
+    wrap.innerHTML =
+      availableDocs.map(t =>
+        '<label class="checkbox-item"><input type="checkbox" class="onboard-assign-doc-cb" value="' + t.id + '"> ' + t.title + ' <span class="meta">(document)</span></label>'
+      ).join("") +
+      availableTasks.map(t =>
+        '<label class="checkbox-item"><input type="checkbox" class="onboard-assign-task-cb" value="' + t.id + '"> ' + t.title + ' <span class="meta">(task)</span></label>'
+      ).join("");
+  }
+
+  document.getElementById("onboard-assign-btn").addEventListener("click", async () => {
+    const msgEl = document.getElementById("onboard-assign-msg");
+    clearMsg(msgEl);
+    if (!onboardSchoolId) return;
+
+    const checkedDocIds = Array.from(document.querySelectorAll(".onboard-assign-doc-cb:checked")).map(cb => cb.value);
+    const checkedTaskIds = Array.from(document.querySelectorAll(".onboard-assign-task-cb:checked")).map(cb => cb.value);
+
+    if (checkedDocIds.length === 0 && checkedTaskIds.length === 0) {
+      showMsg(msgEl, "Select at least one document or task to assign.", "error");
+      return;
+    }
+
+    const docRows = checkedDocIds.map(id => {
+      const t = cachedDocTemplates.find(x => x.id === id);
+      return {
+        partner_school_id: onboardSchoolId, template_id: t.id, title: t.title, description: t.description,
+        file_path: t.file_path, file_name: t.file_name, requires_signature: t.requires_signature,
+        assigned_by_account_id: myAccount.id,
+      };
+    });
+
+    const taskRows = checkedTaskIds.map(id => {
+      const t = cachedTaskTemplates.find(x => x.id === id);
+      return {
+        partner_school_id: onboardSchoolId, template_id: t.id, title: t.title, description: t.description,
+        assigned_by_account_id: myAccount.id,
+      };
+    });
+
+    if (docRows.length > 0) {
+      const { error } = await client.from("onboarding_documents").insert(docRows);
+      if (error) { showMsg(msgEl, error.message, "error"); return; }
+    }
+    if (taskRows.length > 0) {
+      const { error } = await client.from("onboarding_tasks").insert(taskRows);
+      if (error) { showMsg(msgEl, error.message, "error"); return; }
+    }
+
+    showMsg(msgEl, "Assigned.", "success");
+    await loadOnboardingForSchool(onboardSchoolId);
+  });
+
+  function renderOnboardProgress() {
+    const signedCount = cachedOnboardDocs.filter(d => d.status === "completed").length;
+    const doneCount = cachedOnboardTasks.filter(t => t.status === "completed").length;
+    document.getElementById("onboard-progress-summary").textContent =
+      signedCount + " of " + cachedOnboardDocs.length + " documents completed · " +
+      doneCount + " of " + cachedOnboardTasks.length + " tasks completed";
+
+    const docListEl = document.getElementById("onboard-doc-list");
+    docListEl.innerHTML = cachedOnboardDocs.length
+      ? cachedOnboardDocs.map(d => {
+          const pill = d.status === "completed"
+            ? '<span class="status-pill status-approved">Completed</span>'
+            : '<span class="status-pill status-pending_review">Pending</span>';
+          const detail = d.status === "completed"
+            ? "Signed by " + (d.signer_name || "—") + " on " + new Date(d.signed_at).toLocaleDateString()
+            : (d.requires_signature ? "Requires signature" : "Acknowledgment only");
+          return '<div class="list-item">' +
+            '<div><div style="font-weight:600;">' + d.title + "</div>" +
+            '<div class="meta">' + detail + "</div></div>" +
+            '<span style="display:flex; align-items:center; gap:8px;">' + pill +
+            '<button type="button" class="back onboard-doc-remove-btn" data-id="' + d.id + '" style="padding:6px 10px; font-size:12px;">Remove</button></span>' +
+            "</div>";
+        }).join("")
+      : '<div class="empty-note">No documents assigned yet.</div>';
+
+    document.querySelectorAll(".onboard-doc-remove-btn").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        if (!confirm("Remove this document from the school's onboarding checklist?")) return;
+        const { error } = await client.from("onboarding_documents").delete().eq("id", btn.dataset.id);
+        if (error) { alert("Could not remove: " + error.message); return; }
+        await loadOnboardingForSchool(onboardSchoolId);
+      });
+    });
+
+    const taskListEl = document.getElementById("onboard-task-list");
+    taskListEl.innerHTML = cachedOnboardTasks.length
+      ? cachedOnboardTasks.map(t => {
+          const pill = t.status === "completed"
+            ? '<span class="status-pill status-approved">Completed</span>'
+            : '<span class="status-pill status-pending_review">Pending</span>';
+          const detail = t.status === "completed"
+            ? "Completed " + new Date(t.completed_at).toLocaleDateString()
+            : (t.description || "");
+          return '<div class="list-item">' +
+            '<div><div style="font-weight:600;">' + t.title + "</div>" +
+            (detail ? '<div class="meta">' + detail + "</div>" : "") + "</div>" +
+            '<span style="display:flex; align-items:center; gap:8px;">' + pill +
+            '<button type="button" class="back onboard-task-remove-btn" data-id="' + t.id + '" style="padding:6px 10px; font-size:12px;">Remove</button></span>' +
+            "</div>";
+        }).join("")
+      : '<div class="empty-note">No tasks assigned yet.</div>';
+
+    document.querySelectorAll(".onboard-task-remove-btn").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        if (!confirm("Remove this task from the school's onboarding checklist?")) return;
+        const { error } = await client.from("onboarding_tasks").delete().eq("id", btn.dataset.id);
+        if (error) { alert("Could not remove: " + error.message); return; }
+        await loadOnboardingForSchool(onboardSchoolId);
+      });
+    });
+  }
 
   checkAccess();
 </script>
