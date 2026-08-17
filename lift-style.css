@@ -490,6 +490,39 @@ a.tile.coming-soon { opacity: 0.5; cursor: default; pointer-events: none; }
 .gb-cat-name-input, .gb-cat-weight-input { display: inline-block; width: auto; margin: 0 6px 0 0; }
 .gb-score-input { text-align: center; }
 
+/* ---------- Help / FAQ accordion ---------- */
+
+.help-section-title { font-size: 15px; font-weight: 700; margin: 28px 0 10px; color: var(--text-primary); }
+.help-section-title:first-child { margin-top: 0; }
+.help-intro { font-size: 13px; color: var(--text-secondary); margin-bottom: 18px; }
+
+details.help-item {
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  margin-bottom: 10px;
+  background: var(--surface-bg);
+  overflow: hidden;
+}
+details.help-item summary {
+  padding: 14px 16px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text-primary);
+  list-style: none;
+}
+details.help-item summary::-webkit-details-marker { display: none; }
+details.help-item summary::before { content: "+"; display: inline-block; width: 18px; color: var(--text-secondary); font-weight: 700; }
+details.help-item[open] summary::before { content: "\2013"; }
+details.help-item .help-body {
+  padding: 0 16px 16px 34px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.65;
+}
+details.help-item .help-body ol, details.help-item .help-body ul { margin: 8px 0; padding-left: 20px; }
+details.help-item .help-body li { margin-bottom: 4px; }
+
 /* ---------- Attendance status toggle ---------- */
 
 .att-status-btn {

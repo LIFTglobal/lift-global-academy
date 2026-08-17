@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LIFT Global Academy — How To</title>
+<link rel="stylesheet" href="lift-style.css">
+<script>(function(){var t=localStorage.getItem("lift-theme");if(t==="dark")document.documentElement.setAttribute("data-theme","dark");})();</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="page">
+
+<div class="wrap" id="gate-wrap">
+  <div class="card gate" id="gate">
+    <div class="spinner"></div>
+    Checking your session...
+  </div>
+</div>
+
+<div id="app-wrap" style="display:none;">
+  <div class="workspace">
+
+    <div class="mobile-topbar">
+      <button type="button" class="mobile-menu-btn" id="mobile-menu-btn" aria-label="Open menu"><span></span><span></span><span></span></button>
+      <img class="mobile-topbar-logo" src="lift-logo.png" alt="">
+      <div class="mobile-topbar-title">LIFT Global</div>
+    </div>
+    <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+
+    <div class="sidebar" id="sidebar">
+      <a class="sidebar-brand" href="lift_help.html">
+        <img class="sidebar-logo" src="lift-logo.png" alt="LIFT Global Academy logo">
+        <div class="sidebar-brand-text">
+          <div class="sidebar-brand-title">LIFT Global</div>
+          <div class="sidebar-brand-subtitle">How To</div>
+        </div>
+      </a>
+
+      <div id="cross-nav"></div>
+
+      <div class="sidebar-school-badge" id="sidebar-school-badge" style="display:none;">
+        <img class="sidebar-school-logo" id="sidebar-school-logo" src="" alt="">
+        <div style="overflow:hidden;">
+          <div class="sidebar-school-name" id="sidebar-school-name"></div>
+          <div class="sidebar-school-label" id="sidebar-school-label" style="color:var(--sidebar-dot);">Partner school</div>
+        </div>
+      </div>
+
+      <div class="sidebar-spacer"></div>
+      <button type="button" class="theme-toggle" id="theme-toggle-btn">
+        <span class="theme-toggle-label">Dark mode</span>
+        <span class="theme-toggle-switch" id="theme-toggle-switch"><span class="theme-toggle-knob"></span></span>
+      </button>
+      <button type="button" class="sidebar-collapse-toggle" id="sidebar-collapse-btn">
+        <span class="chevron"></span><span>Collapse</span>
+      </button>
+      <div class="sidebar-footer">Signed in as<strong id="who-am-i"></strong></div>
+    </div>
+
+    <div class="workspace-main">
+      <div class="workspace-header">
+        <div>
+          <div class="workspace-header-title">How To</div>
+          <div class="workspace-header-subtitle">Step-by-step guidance for using LIFT Global Academy</div>
+        </div>
+        <div class="workspace-header-actions">
+          <button type="button" class="header-link" id="signout-btn">Sign out</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="help-intro" style="margin-bottom:0;">Click a question to expand it. What you see below is tailored to your account type — sections only appear if they're relevant to you.</div>
+      </div>
+
+      <!-- ---------- Everyone ---------- -->
+      <div id="help-everyone">
+        <div class="help-section-title">Getting around</div>
+
+        <details class="help-item">
+          <summary>How do I switch between light and dark mode?</summary>
+          <div class="help-body">Click the "Dark mode" switch near the bottom of the sidebar. Your choice is remembered on this device, so you won't need to set it again next time you sign in.</div>
+        </details>
+
+        <details class="help-item">
+          <summary>How do I navigate between different parts of the program?</summary>
+          <div class="help-body">
+            Use the links in the sidebar on the left — they take you straight to any page you have access to. On a phone or narrow screen, tap the menu icon in the top bar to open the sidebar.
+            <br><br>
+            You can also collapse the sidebar to just icons using the "Collapse" button at the bottom, if you want more room to work.
+          </div>
+        </details>
+
+        <details class="help-item">
+          <summary>How do I sign out?</summary>
+          <div class="help-body">Click "Sign out" in the top-right corner of any page.</div>
+        </details>
+      </div>
+
+      <!-- ---------- Teacher ---------- -->
+      <div id="help-teacher" style="display:none;">
+        <div class="help-section-title">Getting started as a teacher</div>
+
+        <details class="help-item">
+          <summary>Which workspace should I use — Secondary, Middle, or Elementary?</summary>
+          <div class="help-body">
+            From your Home page, pick whichever matches how you teach:
+            <ul>
+              <li><strong>Secondary / high school</strong> — you teach one subject at a time to specific classes, one student at a time.</li>
+              <li><strong>Middle school</strong> — similar, organized around the subjects you teach.</li>
+              <li><strong>Elementary classroom</strong> — you teach one class all subjects together; you'll grade a student across all subjects at once instead of picking a class first.</li>
+            </ul>
+            You can switch anytime by returning to your Home page.
+          </div>
+        </details>
+
+        <details class="help-item">
+          <summary>How do I submit a grade and evaluation?</summary>
+          <div class="help-body">
+            <ol>
+              <li>Go to "Submit grades" in the sidebar.</li>
+              <li>Choose your class (Secondary/Middle), or choose a student directly (Elementary).</li>
+              <li>Choose the student, enter their grade, a written evaluation, and any comments for LIFT.</li>
+              <li>Optionally attach a document (report card, assessment, writing sample, etc.).</li>
+              <li>Click <strong>"Save as draft"</strong> to keep working on it later, or <strong>"Submit for review"</strong> once you're ready to send it to LIFT.</li>
+            </ol>
+            You can track the status of everything you've submitted under "Your submissions" — Draft, Pending review, Approved, or Revisions requested.
+          </div>
+        </details>
+
+        <details class="help-item">
+          <summary>How does the Gradebook work?</summary>
+          <div class="help-body">
+            The Gradebook lets you track ongoing assignments instead of typing in one final grade from memory.
+            <ol>
+              <li>Go to "Gradebook" and pick a class (or subject, for Elementary).</li>
+              <li>You'll see default grading categories (Homework, Classwork, Tests/Quizzes, Final/Project) already set up with standard weights — rename them, change their weights, or add your own to fit how you grade.</li>
+              <li>Add assignments under a category with a title and points possible.</li>
+              <li>Enter each student's score as you grade their work. Use the "N/A" button on any assignment a student is excused from — it won't count against their average.</li>
+              <li>Each student's running average updates automatically based on your category weights.</li>
+              <li>When you're ready to submit a grade, click <strong>"Use in submission"</strong> next to a student — it jumps you to the Submit grades form with their average already filled in, so you can review and submit.</li>
+            </ol>
+          </div>
+        </details>
+
+        <details class="help-item">
+          <summary>How do I take attendance?</summary>
+          <div class="help-body">
+            Go to "Attendance," choose a class and date (Secondary/Middle) or just a date (Elementary, since it's one classroom all day), then click Present, Absent, Tardy, or Excused next to each student. A running count for the day appears above the list. You can come back and change a mark anytime.
+          </div>
+        </details>
+
+        <details class="help-item">
+          <summary>What do the submission statuses mean?</summary>
+          <div class="help-body">
+            <ul>
+              <li><strong>Draft</strong> — saved, but not yet sent to LIFT. Only you can see it.</li>
+              <li><strong>Pending review</strong> — submitted and waiting for a LIFT evaluator to look at it.</li>
+              <li><strong>Approved</strong> — reviewed and accepted; credit has been awarded and it now counts toward the student's graduation progress and transcript.</li>
+              <li><strong>Revisions requested</strong> — the evaluator needs something changed or clarified before it can be approved.</li>
+            </ul>
+          </div>
+        </details>
+      </div>
+
+      <!-- ---------- School admin ---------- -->
+      <div id="help-school-admin" style="display:none;">
+        <div class="help-section-title">Getting started as a school administrator</div>
+
+        <details class="help-item">
+          <summary>How do I add teachers and other administrators?</summary>
+          <div class="help-body">
+            Go to "Teachers" or "Administrators" in your school dashboard and use the "Add" form — you'll set their name, email, and a temporary password. For teachers, you can also assign an elementary grade level right away if that applies to them. New accounts can sign in immediately with the credentials you set.
+          </div>
+        </details>
+
+        <details class="help-item">
+          <summary>How do I set up a class for a middle/high school teacher?</summary>
+          <div class="help-body">
+            Go to "Classes," create a class with its subject, grade level, term, and the teacher who'll run it, then use "Manage roster" to check off which students belong in it. Elementary teachers don't need a class — they're scoped to a whole grade level instead, set on their account under "Teachers."
+          </div>
+        </details>
+
+        <details class="help-item">
+          <summary>How do I add or edit students?</summary>
+          <div class="help-body">Go to "Students" to add a new student or edit an existing one — name, grade level, date of birth, gender, and parent/guardian contact info. Use the school filter at the top if you manage more than one school's worth of students.</div>
+        </details>
+
+        <details class="help-item">
+          <summary>How do I record a student's history at a previous school?</summary>
+          <div class="help-body">Go to "School history," pick the student, and add an entry with the prior school's name, dates attended, attendance record, and address. This information is used when building that student's official transcript.</div>
+        </details>
+
+        <details class="help-item">
+          <summary>How do I pay an invoice from LIFT?</summary>
+          <div class="help-body">Go to "Billing" — any unpaid invoices from LIFT show a "Pay via PayPal" button. Once you pay, LIFT will mark it as received on their end.</div>
+        </details>
+
+        <details class="help-item">
+          <summary>How do I complete onboarding?</summary>
+          <div class="help-body">
+            Go to "Onboarding" — you'll see any documents LIFT needs you to sign and any tasks they've asked you to complete.
+            <ul>
+              <li>For each document: open and read it, check the box confirming you've read it, type your full legal name, then click Sign (or Acknowledge, for documents that don't require a formal signature).</li>
+              <li>For each task: click "Mark complete" once it's done. You can undo this if you marked something by mistake.</li>
+            </ul>
+          </div>
+        </details>
+      </div>
+
+      <!-- ---------- LIFT evaluator (staff) ---------- -->
+      <div id="help-evaluator" style="display:none;">
+        <div class="help-section-title">Getting started as LIFT staff</div>
+
+        <details class="help-item">
+          <summary>How do I review a teacher's submission?</summary>
+          <div class="help-body">
+            Go to "Review queue" and open any pending submission. Read the grade, evaluation, and any attached documents, then either:
+            <ul>
+              <li><strong>Approve</strong> — choose the graduation category and the credit value to award, then click Approve. This is what makes it count toward the student's graduation progress and transcript.</li>
+              <li><strong>Request revisions</strong> — leave a note explaining what's missing or needs correcting; it goes back to the teacher as a draft they can resubmit.</li>
+            </ul>
+          </div>
+        </details>
+
+        <details class="help-item">
+          <summary>How do I manage partner schools, their teachers, and their students?</summary>
+          <div class="help-body">All of this lives under "Manage schools," which has its own set of tabs: Schools (add/edit schools, logos, branding, accreditation and membership status), Teachers, Administrators, Classes, Students, and School history. School administrators can manage most of the same things for their own school only — you can see and manage every school.</div>
+        </details>
+
+        <details class="help-item">
+          <summary>How do I enter a student's grades from a school they attended before joining LIFT?</summary>
+          <div class="help-body">
+            Under "Manage schools" → "School history," pick the student and open the "Transfer credits" panel below their school history entries. Add each prior class with its grade, the graduation category it counts toward, and the credit value — it's marked approved immediately and counts toward that student's graduation progress right away, with no teacher or school involvement needed.
+          </div>
+        </details>
+
+        <details class="help-item">
+          <summary>How do I onboard a new partner school?</summary>
+          <div class="help-body">
+            Under "Manage schools" → "Onboarding":
+            <ol>
+              <li>Build your reusable template library once — document templates (upload a file, and mark whether it requires a signature) and task templates.</li>
+              <li>Pick the new school, check off which templates apply, and click "Assign selected."</li>
+              <li>Track their progress on the same page — how many documents are signed and tasks completed — until they're fully onboarded.</li>
+            </ol>
+            The school administrator completes their side from their own "Onboarding" page.
+          </div>
+        </details>
+
+        <details class="help-item">
+          <summary>How do I create and manage invoices?</summary>
+          <div class="help-body">Go to "Billing," choose a school, and create an invoice with a description and amount. Once the school pays, mark it paid — or void it if it shouldn't have been issued.</div>
+        </details>
+
+        <details class="help-item">
+          <summary>How does graduation progress and transcript generation work?</summary>
+          <div class="help-body">
+            Both pull from every <em>approved</em> submission for a student — drafts and pending items never count. "Graduation progress" totals credits earned by category against LIFT's requirement set. "Transcript" lists every approved course with its grade and credit, calculates a GPA, and lets you generate an official PDF.
+          </div>
+        </details>
+
+        <details class="help-item">
+          <summary>How do I preview what a teacher sees?</summary>
+          <div class="help-body">
+            From your Home page, open "Teacher workspace (preview)," then pick Secondary, Middle, or Elementary. At the top of that page, use the "Previewing as" dropdown to pick any teacher account. Everything you do while previewing — assignments, scores, attendance, submissions — is saved under that teacher's account, exactly as if they'd done it. Use "Exit preview" in the top-right to return to your own evaluator home.
+          </div>
+        </details>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+  const SUPABASE_URL = "https://ojmqlvtyygvethwrdqon.supabase.co";
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9qbXFsdnR5eWd2ZXRod3JkcW9uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0MzEyMTQsImV4cCI6MjA5ODAwNzIxNH0.IWLrhtb4w_dq-_pjW1wzRAX6-0qI4Hmwtp5p_cSSVWM";
+
+  const { createClient } = supabase;
+  const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  document.getElementById("mobile-menu-btn").addEventListener("click", () => {
+    document.getElementById("sidebar").classList.add("open");
+    document.getElementById("sidebar-backdrop").classList.add("open");
+  });
+  document.getElementById("sidebar-backdrop").addEventListener("click", () => {
+    document.getElementById("sidebar").classList.remove("open");
+    document.getElementById("sidebar-backdrop").classList.remove("open");
+  });
+
+  function setTheme(dark) {
+    document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
+    document.getElementById("theme-toggle-switch").classList.toggle("on", dark);
+    localStorage.setItem("lift-theme", dark ? "dark" : "light");
+  }
+  document.getElementById("theme-toggle-btn").addEventListener("click", () => {
+    setTheme(document.documentElement.getAttribute("data-theme") !== "dark");
+  });
+  setTheme(document.documentElement.getAttribute("data-theme") === "dark");
+
+  document.getElementById("sidebar-collapse-btn").addEventListener("click", () => {
+    document.getElementById("sidebar").classList.toggle("collapsed");
+  });
+
+  document.getElementById("signout-btn").addEventListener("click", async () => {
+    await client.auth.signOut();
+    window.location.href = "lift_login.html";
+  });
+
+  function applySchoolBranding(school) {
+    if (!school) return;
+    const sidebar = document.getElementById("sidebar");
+    if (school.brand_primary_color) sidebar.style.background = school.brand_primary_color;
+    if (school.brand_secondary_color) sidebar.style.setProperty("--sidebar-dot", school.brand_secondary_color);
+    if (school.name) {
+      document.getElementById("sidebar-school-name").textContent = school.name;
+      document.getElementById("sidebar-school-badge").style.display = "flex";
+    }
+    document.getElementById("sidebar-school-logo").src = school.logo_url || "lift-logo.png";
+  }
+
+  function renderCrossNav(role) {
+    const el = document.getElementById("cross-nav");
+    if (role === "lift_evaluator") {
+      el.innerHTML =
+        '<a class="sidebar-nav-item" href="lift_home_evaluator.html"><span class="sidebar-nav-dot"></span><span class="sidebar-nav-label">Home</span></a>' +
+        '<a class="sidebar-nav-item" href="lift_evaluator.html"><span class="sidebar-nav-dot"></span><span class="sidebar-nav-label">Review queue</span></a>' +
+        '<a class="sidebar-nav-item" href="lift_admin.html"><span class="sidebar-nav-dot"></span><span class="sidebar-nav-label">Manage schools</span></a>' +
+        '<a class="sidebar-nav-item" href="lift_billing.html"><span class="sidebar-nav-dot"></span><span class="sidebar-nav-label">Billing</span></a>' +
+        '<a class="sidebar-nav-item" href="lift_graduation_progress.html"><span class="sidebar-nav-dot"></span><span class="sidebar-nav-label">Graduation progress</span></a>' +
+        '<a class="sidebar-nav-item" href="lift_transcript.html"><span class="sidebar-nav-dot"></span><span class="sidebar-nav-label">Transcript</span></a>' +
+        '<a class="sidebar-nav-item active" href="lift_help.html"><span class="sidebar-nav-dot"></span><span class="sidebar-nav-label">Help</span></a>';
+    } else if (role === "school_admin") {
+      el.innerHTML =
+        '<a class="sidebar-nav-item" href="lift_admin.html"><span class="sidebar-nav-dot"></span><span class="sidebar-nav-label">My school</span></a>' +
+        '<a class="sidebar-nav-item" href="lift_billing.html"><span class="sidebar-nav-dot"></span><span class="sidebar-nav-label">Billing</span></a>' +
+        '<a class="sidebar-nav-item" href="lift_onboarding.html"><span class="sidebar-nav-dot"></span><span class="sidebar-nav-label">Onboarding</span></a>' +
+        '<a class="sidebar-nav-item active" href="lift_help.html"><span class="sidebar-nav-dot"></span><span class="sidebar-nav-label">Help</span></a>';
+    } else {
+      el.innerHTML =
+        '<a class="sidebar-nav-item" href="lift_home_teacher.html"><span class="sidebar-nav-dot"></span><span class="sidebar-nav-label">Home</span></a>' +
+        '<a class="sidebar-nav-item" href="lift_teacher.html"><span class="sidebar-nav-dot"></span><span class="sidebar-nav-label">Secondary / high school</span></a>' +
+        '<a class="sidebar-nav-item" href="lift_teacher_middle.html"><span class="sidebar-nav-dot"></span><span class="sidebar-nav-label">Middle school</span></a>' +
+        '<a class="sidebar-nav-item" href="lift_teacher_elementary.html"><span class="sidebar-nav-dot"></span><span class="sidebar-nav-label">Elementary classroom</span></a>' +
+        '<a class="sidebar-nav-item active" href="lift_help.html"><span class="sidebar-nav-dot"></span><span class="sidebar-nav-label">Help</span></a>';
+    }
+  }
+
+  async function checkAccess() {
+    const { data: sessionData } = await client.auth.getSession();
+    if (!sessionData.session) {
+      document.getElementById("gate").innerHTML =
+        'You\'re not signed in. <a href="lift_login.html">Sign in</a> first, then come back to this page.';
+      return;
+    }
+
+    const userId = sessionData.session.user.id;
+    const { data: account, error } = await client
+      .from("accounts")
+      .select("name, role, partner_schools(name, logo_url, brand_primary_color, brand_secondary_color)")
+      .eq("id", userId)
+      .single();
+
+    if (error || !account) {
+      document.getElementById("gate").innerHTML =
+        "Signed in, but no matching accounts row was found for this user.";
+      return;
+    }
+
+    if (account.role === "teacher") {
+      document.getElementById("help-teacher").style.display = "block";
+      applySchoolBranding(account.partner_schools);
+    } else if (account.role === "school_admin") {
+      document.getElementById("help-school-admin").style.display = "block";
+      applySchoolBranding(account.partner_schools);
+    } else if (account.role === "lift_evaluator") {
+      document.getElementById("help-evaluator").style.display = "block";
+    }
+
+    renderCrossNav(account.role);
+    document.getElementById("who-am-i").textContent = account.name + " (" + account.role + ")";
+    document.getElementById("gate-wrap").style.display = "none";
+    document.getElementById("app-wrap").style.display = "block";
+  }
+
+  checkAccess();
+</script>
+
+</body>
+</html>
