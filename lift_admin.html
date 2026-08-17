@@ -485,6 +485,46 @@
           </form>
           <div class="msg" id="history-msg"></div>
         </div>
+
+        <div class="panel" id="credit-panel-wrap" style="display:none; margin-top:20px;">
+          <div class="hint" style="margin-top:0; margin-bottom:14px;">Add classes and grades from a student's prior school(s) so they count toward graduation progress immediately — no submission from the school or a teacher is needed.</div>
+
+          <div id="credit-list" style="margin-bottom:16px;"></div>
+
+          <h3>Add a prior class &amp; grade</h3>
+          <form id="credit-form">
+            <label for="credit-school-history">From which prior school? (optional)</label>
+            <select id="credit-school-history"><option value="">Not linked to a specific entry</option></select>
+
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+              <div>
+                <label for="credit-subject">Class / subject name</label>
+                <input type="text" id="credit-subject" required placeholder="e.g. Algebra I">
+              </div>
+              <div>
+                <label for="credit-grade">Grade received</label>
+                <input type="text" id="credit-grade" required placeholder="e.g. B+, 88, Pass">
+              </div>
+            </div>
+
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+              <div>
+                <label for="credit-category">Graduation category</label>
+                <select id="credit-category" required></select>
+              </div>
+              <div>
+                <label for="credit-value">Credits earned</label>
+                <input type="number" id="credit-value" step="0.5" min="0" required placeholder="e.g. 5">
+              </div>
+            </div>
+
+            <label for="credit-note">Note (optional)</label>
+            <textarea id="credit-note" placeholder="Anything worth remembering about this credit — term, course description, etc."></textarea>
+
+            <button type="submit" style="margin-top:16px;">Add credit — counts toward graduation progress immediately</button>
+          </form>
+          <div class="msg" id="credit-msg"></div>
+        </div>
       </section>
 
     </div>
@@ -626,6 +666,11 @@
     renderCrossNav();
     document.getElementById("gate-wrap").style.display = "none";
     document.getElementById("app-wrap").style.display = "block";
+
+    if (account.role === "lift_evaluator") {
+      document.getElementById("credit-panel-wrap").style.display = "block";
+      await loadRequirementCategoriesForCredits();
+    }
 
     await loadSchools();
     await loadTeachers();
@@ -1383,9 +1428,13 @@
     const studentId = e.target.value;
     if (!studentId) {
       document.getElementById("history-list").innerHTML = "";
+      document.getElementById("credit-list").innerHTML = "";
+      document.getElementById("credit-school-history").innerHTML = '<option value="">Not linked to a specific entry</option>';
       return;
     }
     await loadHistoryForStudent(studentId);
+    await populatePriorSchoolOptions(studentId);
+    await loadCreditsForStudent(studentId);
   });
 
   async function loadHistoryForStudent(studentId) {
@@ -1481,6 +1530,115 @@
     showMsg(msgEl, "School history entry added.", "success");
     document.getElementById("history-form").reset();
     await loadHistoryForStudent(studentId);
+    await populatePriorSchoolOptions(studentId);
+  });
+
+  // ---------- Transfer credits (prior-school classes & grades, LIFT staff only) ----------
+  async function loadRequirementCategoriesForCredits() {
+    const { data } = await client.from("graduation_requirements").select("subject_category").order("sort_order");
+    document.getElementById("credit-category").innerHTML =
+      '<option value="">Choose a category...</option>' +
+      (data || []).map(r => '<option value="' + r.subject_category + '">' + r.subject_category + "</option>").join("");
+  }
+
+  async function populatePriorSchoolOptions(studentId) {
+    const { data } = await client
+      .from("student_school_history")
+      .select("id, school_name")
+      .eq("student_id", studentId)
+      .order("sort_order");
+
+    document.getElementById("credit-school-history").innerHTML =
+      '<option value="">Not linked to a specific entry</option>' +
+      (data || []).map(h => '<option value="' + h.id + '">' + h.school_name + "</option>").join("");
+  }
+
+  async function loadCreditsForStudent(studentId) {
+    const listEl = document.getElementById("credit-list");
+    listEl.innerHTML = "Loading...";
+
+    const { data, error } = await client
+      .from("review_packages")
+      .select("id, subject, grade_value, awarded_credit_category, awarded_credit_value, teacher_comments, created_at")
+      .eq("student_id", studentId)
+      .eq("source", "transfer_credit")
+      .order("created_at");
+
+    if (error) {
+      listEl.innerHTML = '<div class="empty-note">Could not load transfer credits: ' + error.message + "</div>";
+      return;
+    }
+
+    if (!data || data.length === 0) {
+      listEl.innerHTML = '<div class="empty-note">No transfer credits added yet.</div>';
+      return;
+    }
+
+    listEl.innerHTML = data.map(c => {
+      const parts = [c.awarded_credit_category || "No category", (c.awarded_credit_value != null ? c.awarded_credit_value : "—") + " credits"];
+      if (c.teacher_comments) parts.push(c.teacher_comments);
+      return '<div class="list-item">' +
+        '<div><div style="font-weight:600;">' + c.subject + " — " + c.grade_value + "</div>" +
+        '<div class="meta">' + parts.join(" &middot; ") + "</div></div>" +
+        '<button type="button" class="back credit-delete-btn" data-id="' + c.id + '" style="padding:6px 10px; font-size:12px;">Remove</button>' +
+        "</div>";
+    }).join("");
+
+    document.querySelectorAll(".credit-delete-btn").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        if (!confirm("Remove this transfer credit? This will reduce the student's graduation progress.")) return;
+        const { error: deleteError } = await client.from("review_packages").delete().eq("id", btn.dataset.id);
+        if (deleteError) {
+          alert("Could not remove: " + deleteError.message);
+          return;
+        }
+        await loadCreditsForStudent(studentId);
+      });
+    });
+  }
+
+  document.getElementById("credit-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const msgEl = document.getElementById("credit-msg");
+    clearMsg(msgEl);
+
+    const studentId = document.getElementById("history-student-select").value;
+    if (!studentId) {
+      showMsg(msgEl, "Choose a student first.", "error");
+      return;
+    }
+
+    const awarded_credit_category = document.getElementById("credit-category").value;
+    if (!awarded_credit_category) {
+      showMsg(msgEl, "Choose a graduation category.", "error");
+      return;
+    }
+
+    const payload = {
+      student_id: studentId,
+      subject: document.getElementById("credit-subject").value.trim(),
+      grade_value: document.getElementById("credit-grade").value.trim(),
+      written_evaluation: "Transfer credit entered directly from prior-school records.",
+      teacher_comments: document.getElementById("credit-note").value.trim() || null,
+      submitted_by_account_id: myAccount.id,
+      status: "approved",
+      submitted_at: new Date().toISOString(),
+      awarded_credit_category,
+      awarded_credit_value: parseFloat(document.getElementById("credit-value").value),
+      source: "transfer_credit",
+      prior_school_history_id: document.getElementById("credit-school-history").value || null,
+    };
+
+    const { error } = await client.from("review_packages").insert(payload);
+
+    if (error) {
+      showMsg(msgEl, error.message, "error");
+      return;
+    }
+
+    showMsg(msgEl, "Credit added — it now counts toward this student's graduation progress.", "success");
+    document.getElementById("credit-form").reset();
+    await loadCreditsForStudent(studentId);
   });
 
   checkAccess();
